@@ -8,4 +8,4 @@ Dispenser riego automático:
 		monitor lcd para visualizar información sobre la cantidad de agua, la humedad y podría ser la temperatura del ambiente también.
 		sensor temperatura ambiente.
 		buzzer para cuando tenes muy poca agua.
-		servo motor. No sabemos bien para que..
+		servo motor.
