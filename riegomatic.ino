@@ -15,9 +15,9 @@
 
 
 // For monitoring State and Event
-#define DebugPrintStatus(statuss,event)\
+#define DebugPrintStatus(status,event)\
       {\
-        String est = statuss;\
+        String est = status;\
         String evt = event;\
         String str;\
         str = "******************************************************";\
@@ -25,7 +25,14 @@
         str = "State:[" + est + "] " + "Event:[" + evt + "].";\
         DebugPrint(str);\
       }
-
+#define DebugPrintMetric(sensor,value)\
+      {\
+        String sen = sensor;\
+        int val = value;\
+        String str;\
+        str = "Valor " + sen + " : " + val + "...";\
+        DebugPrint(str);\
+      }
 
 
 /*CONSTANTES*/
@@ -42,6 +49,12 @@
 #define SENSOR_TEMPERATURE 2
 #define SENSOR_HUMIDITY 3
 #define ACT_RIEGO 10
+
+/*RESPUESTAS*/
+#define R_OK 1
+#define R_INTERRUPTION 7
+#define R_ERROR 9
+
 
 /*UMBRALES*/
 #define HUMIDITY_LOW 200
@@ -83,9 +96,8 @@ transition state_table[MAX_STATES][MAX_EVENTS] =
 //----------------------------------------------
 //-------------- GLOBAL VARIABLES --------------
 // int lct; //last current time.
-int system_status = 0;
 long humidity;
-int there_was_system_changed = 0; // variables temporales para las pruebas NI IDEA QUE ES ESTA VARIABLE
+
 
 //-----------------------------------------------
 //----------------- INITIALIZE ------------------
@@ -118,6 +130,8 @@ void do_init()
     // lct = millis(); // ultimo tiempo actual.
 }
 
+//----------------------------------------------
+//------------------ ACTIONS -------------------
 void turn_off_led_green()
 {
     digitalWrite(PIN_GREEN_LED, LOW);
@@ -144,7 +158,8 @@ int read_sensor_humidity()
 {
     sensors[SENSOR_HUMIDITY].previous_value = sensors[SENSOR_HUMIDITY].current_value;
     sensors[SENSOR_HUMIDITY].current_value = analogRead(PIN_HUMIDITY_SENSOR);
-    Serial.println(sensors[SENSOR_HUMIDITY].current_value);
+	DebugPrintMetric("Humedad",sensors[SENSOR_HUMIDITY].current_value);
+    //Serial.println("Humedad" + sensors[SENSOR_HUMIDITY].current_value);
     return sensors[SENSOR_HUMIDITY].current_value;
 }
 
@@ -153,15 +168,16 @@ long read_sensor_distance()
     return analogRead(PIN_DISTANCE_SENSOR);
 }
 
-int check_button()
-{
+bool check_button()
+{	
+	bool there_was_system_changed = false;
     /*Sistema se mantiene prendido hasta volver a apretar*/
     sensors[SENSOR_BUTTON].current_value = digitalRead(PIN_BUTTON);
     //  Serial.println(sensors[SENSOR_BUTTON].current_value);
     if ((sensors[SENSOR_BUTTON].current_value == HIGH) && (sensors[SENSOR_BUTTON].previous_value == LOW))
     {
         sensors[SENSOR_BUTTON].state = 1 - sensors[SENSOR_BUTTON].state;
-        there_was_system_changed = 1;
+        there_was_system_changed = true;
     }
     sensors[SENSOR_BUTTON].previous_value = sensors[SENSOR_BUTTON].current_value;
 
@@ -171,57 +187,85 @@ int check_button()
         if (sensors[SENSOR_BUTTON].state == 1)
         {
             Serial.println("Sistema encendido");
-            system_status = 1;
         }
         else
         {
             Serial.println("Sistema apagado");
-            system_status = 0;
         }
     }
     /*******************/
     return there_was_system_changed;
 }
 
-//-----------------------------------------------
-/** ESTADOS **/
+int check_water()
+{
+	return R_OK;
+}
+
+int check_humidity()
+{
+	read_sensor_humidity();
+
+	if (sensors[SENSOR_HUMIDITY].current_value <= HUMIDITY_LOW)
+	{
+		Serial.println("Hay poca humedad. Regar");
+		turn_on_led_red(); // Solo para probar la conexion del led
+		//  new_event   = EV_NEED_WATER;
+		//  return R_INTERRUPTION;
+	}
+	if (sensors[SENSOR_HUMIDITY].current_value < HUMIDITY_HIGH && sensors[SENSOR_HUMIDITY].current_value > HUMIDITY_LOW)
+	{
+		turn_off_led_red(); // Solo para probar la conexion del led
+		Serial.println("humedad NORMAL");
+	}
+
+	if (sensors[SENSOR_HUMIDITY].current_value >= HUMIDITY_HIGH)
+	{
+		Serial.println("Hay mucha humedad");
+	}
+	return R_OK;
+
+	
+}
+
+//----------------------------------------------
+//------------------ ESTADOS -------------------
 
 void off_()
 {
-    turn_off_led_green();
+    current_state = ST_OFF;
+	turn_off_led_green();
     turn_off_led_red();
 
-    if (SERIAL_DEBUG_ENABLED && there_was_system_changed)
+  /*  if (SERIAL_DEBUG_ENABLED)
     {
         Serial.println("Sistema apagado");
-        there_was_system_changed = 0;
-    }
+    }*/
 }
 
 void warning_()
 {
+    current_state = ST_WARNING;
     turn_on_led_red();
-    if (SERIAL_DEBUG_ENABLED && there_was_system_changed)
-    {
-        Serial.println("Sistema con en alarma o con errores");
-        there_was_system_changed = 0;
-    }
+    /*  if (SERIAL_DEBUG_ENABLED )
+          Serial.println("Sistema con en alarma o con errores");
+      */
 }
 
 void status_check_()
 {
-    turn_off_led_red();
+    current_state = ST_STATUS_CHECK;
+	turn_off_led_red();
     turn_on_led_green();
-    if (SERIAL_DEBUG_ENABLED && there_was_system_changed)
-    {
+   /* if (SERIAL_DEBUG_ENABLED )
         Serial.println("Inicio de monitoreo de temperatura humedad y cantidad de agua");
-        there_was_system_changed = 0;
-    }
+	*/
 }
 
 void watering_()
 {
-    Serial.println("Habilitando salida de agua");
+    current_state = ST_WATERING;
+	Serial.println("Habilitando salida de agua");
     digitalWrite(ACT_RIEGO, HIGH);
     delay(2000);
     digitalWrite(ACT_RIEGO, LOW);
@@ -229,42 +273,26 @@ void watering_()
 
 void error_()
 {
-    turn_on_led_red;
+    //current_state = ST_ERROR ?;
+	turn_on_led_red();
     Serial.println("<<<<<<<<<<<<<<<<< OCCURIO UN ERROR >>>>>>>>>>>>>>>>>>>>>");
 }
-
+//----------------------------------------------
+//----------- CHECK FOR NEW EVENTS -------------
 void getNewEvent()
 {
-    there_was_system_changed = 0;
     if (check_button())
     {
         new_event = EV_BUTTON;
         return;
     }
-    if (system_status == 1)
+    if (current_state != ST_OFF)
     {
-        read_sensor_humidity();
-
-        if (sensors[SENSOR_HUMIDITY].current_value <= HUMIDITY_LOW)
-        {
-            Serial.println("Hay poca humedad. Regar");
-            turn_on_led_red(); // Solo para probar la conexion del led
-            //  new_event   = EV_NEED_WATER;
-            //  return;
-        }
-        if (sensors[SENSOR_HUMIDITY].current_value < HUMIDITY_HIGH && sensors[SENSOR_HUMIDITY].current_value > HUMIDITY_LOW)
-        {
-            turn_off_led_red(); // Solo para probar la conexion del led
-            Serial.println("humedad NORMAL");
-        }
-
-        if (sensors[SENSOR_HUMIDITY].current_value >= HUMIDITY_HIGH)
-        {
-            Serial.println("Hay mucha humedad");
-        }
-
+        if(check_water() == R_INTERRUPTION )
+			return;
+		if(check_humidity() == R_INTERRUPTION )
+			return;
         /*si no se genero ningun evento nuevo*/
-
         new_event = EV_CONTROL;
     }
     else
@@ -272,8 +300,6 @@ void getNewEvent()
         new_event = EV_UNKNOW;
     }
 
-    // Genero evento dummy ....
-    new_event = EV_CONTROL;
 }
 
 //-----------------------------------------------
@@ -283,21 +309,18 @@ void state_machine()
     getNewEvent();
     if ((new_event >= 0) && (new_event < MAX_EVENTS) && (current_state >= 0) && (current_state < MAX_STATES))
     {
-        if (new_event != EV_CONTROL)
-        {
-            DebugPrintStatus(states_s[current_state], events_s[new_event]);
-        }
+
+        DebugPrintStatus(states_s[current_state], events_s[new_event]);
         // Launch the action
         state_table[current_state][new_event]();
+		
     }
     else
     {
-        Serial.println("<<<<<<<<<<<<<<<<< OCCURIO UN ERROR CON EL EVENTO O ESTADO >>>>>>>>>>>>>>>>>>>>>");
-        DebugPrintStatus(states_s[ST_WARNING], events_s[EV_UNKNOW]);
+        Serial.println("<<<<<<<<<<<<<<<<< OCCURIO UN ERROR CON EL EVENTO O ESTADO FUERA DE RANGO ESPERADO >>>>>>>>>>>>>>>>>>>>>");
+		Serial.println("<<<<<<<<<<<<<<<<<    				      REVISAR CODIGO		 				  >>>>>>>>>>>>>>>>>>>>>");
     }
 
-    // Consume the event..
-    new_event = EV_CONTROL;
 }
 
 //-----------------------------------------------
