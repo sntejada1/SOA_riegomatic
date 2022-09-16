@@ -1,5 +1,4 @@
 // C++ code
-//
 
 #define SERIAL_DEBUG_ENABLED 1
 
@@ -34,7 +33,6 @@
         DebugPrint(str);\
       }
 
-
 /*CONSTANTES*/
 #define PIN_GREEN_LED 9
 #define PIN_RED_LED 8
@@ -42,6 +40,7 @@
 #define PIN_HUMIDITY_SENSOR A0
 #define PIN_DISTANCE_SENSOR 12
 #define PIN_TEMPERATURE_SENSOR 0
+#define PIN_BUZZER 10
 
 #define MAX_CANT_SENSORES 4
 #define SENSOR_BUTTON 0
@@ -55,11 +54,12 @@
 #define R_INTERRUPTION 7
 #define R_ERROR 9
 
-
 /*UMBRALES*/
 #define HUMIDITY_LOW 200
 #define HUMIDITY_HIGH 800
 
+//----------------------------------------------
+//-------------- GLOBAL VARIABLES --------------
 /*Sensor structure*/
 struct stSensor
 {
@@ -68,7 +68,6 @@ struct stSensor
     long current_value;
     long previous_value;
 };
-
 stSensor sensors[MAX_CANT_SENSORES];
 
 //----------------------------------------------
@@ -85,19 +84,15 @@ String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING", "WARNING", "NEED_W
 typedef void (*transition)();
 transition state_table[MAX_STATES][MAX_EVENTS] =
 {
-  {status_check_    , error_       , error_     , error_       , error_       , off_      } , // state ST_OFF
-  {off_       , status_check_     , warning_   , watering_  , warning_    , error_       } , // state ST_STATUS_CHECK
-  {off_       , status_check_     , warning_   , error_      , warning_    , error_       } , // state ST_WATERING
-  {off_       , error_            , warning_   , error_       , warning_    , error_       }   // state ST_WARNING
-  //EV_BUTTON  , EV_CONTROL , EV_WARNING , EV_NEED_WATER , EV_TIMEOUT  , EV_UNKNOW
+  {status_check_    , error_      , error_     , error_       , error_       , off_      } , // state ST_OFF
+  {off_       , status_check_     , warning_   , watering_    , warning_     , error_    } , // state ST_STATUS_CHECK
+  {off_       , status_check_     , warning_   , error_       , warning_     , error_    } , // state ST_WATERING
+  {off_       , status_check_     , warning_   , error_       , warning_     , error_    }   // state ST_WARNING
+  //EV_BUTTON , EV_CONTROL        , EV_WARNING , EV_NEED_WATER , EV_TIMEOUT  , EV_UNKNOW
 };
 
-
-//----------------------------------------------
-//-------------- GLOBAL VARIABLES --------------
-// int lct; //last current time.
+// int lct; //last current time. // desconozco el uso de esta variable
 long humidity;
-
 
 //-----------------------------------------------
 //----------------- INITIALIZE ------------------
@@ -107,6 +102,9 @@ void do_init()
     /*LEDS*/
     pinMode(PIN_GREEN_LED, OUTPUT);
     pinMode(PIN_RED_LED, OUTPUT);
+
+    /*BUZZER*/
+    pinMode(PIN_BUZZER, OUTPUT);
 
     /*BUTTON*/
     pinMode(PIN_BUTTON, INPUT);
@@ -124,7 +122,7 @@ void do_init()
     // sensors[SENSOR_DISTANCE].state = 0;
 
     /* INTIALIZE FIRST EVENT*/
-    current_state = ST_OFF;
+    current_state = ST_STATUS_CHECK;
     new_event = EV_UNKNOW;
 
     // lct = millis(); // ultimo tiempo actual.
@@ -132,27 +130,62 @@ void do_init()
 
 //----------------------------------------------
 //------------------ ACTIONS -------------------
-void turn_off_led_green()
+void turn_off_green_led()
 {
     digitalWrite(PIN_GREEN_LED, LOW);
     // Serial.println("Led apagado");
 }
 
-void turn_on_led_green()
+void turn_on_green_led()
 {
     digitalWrite(PIN_GREEN_LED, HIGH);
     // Serial.println("Led prendido");
 }
 
-void turn_on_led_red()
+void turn_on_red_led()
 {
     digitalWrite(PIN_RED_LED, HIGH);
 }
 
-void turn_off_led_red()
+void turn_off_red_led()
 {
     digitalWrite(PIN_RED_LED, LOW);
 }
+
+#define TIME_MAX_MILLIS 2000
+#define TIME_SECOND_TONE_BUZZER_MAX_MILLIS 500
+
+int curTime;
+int prevTime;
+int curTimeBuzzer;
+int prevTimeBuzzer;
+int flagBuzzer = 0;
+
+
+void turn_on_alarm()
+{
+    curTimeBuzzer = millis();
+
+	if(curTimeBuzzer - prevTimeBuzzer > TIME_MAX_MILLIS)
+	{
+		// launch first buzzer sound & second timer.
+		flagBuzzer = 1;
+		prevTime = millis();
+		prevTimeBuzzer =  millis();
+		tone(PIN_BUZZER, 1915, 400);
+	}
+
+	curTime = millis();
+	if( (curTime-prevTime) >= TIME_SECOND_TONE_BUZZER_MAX_MILLIS && flagBuzzer)
+	{
+		// launch second buzzer sound.
+		tone(PIN_BUZZER, 1432, 400);
+		flagBuzzer = 0;
+	}
+
+    DebugPrint("Alarma prendida");
+}
+
 
 int read_sensor_humidity()
 {
@@ -168,11 +201,12 @@ long read_sensor_distance()
     return analogRead(PIN_DISTANCE_SENSOR);
 }
 
+//Checks if the button was pressed to turn on or off the system..
 bool check_button()
 {	
 	bool there_was_system_changed = false;
     /*Sistema se mantiene prendido hasta volver a apretar*/
-    sensors[SENSOR_BUTTON].current_value = digitalRead(PIN_BUTTON);
+    sensors[SENSOR_BUTTON].current_value = digitalRead(PIN_BUTTON); //read button value
     //  Serial.println(sensors[SENSOR_BUTTON].current_value);
     if ((sensors[SENSOR_BUTTON].current_value == HIGH) && (sensors[SENSOR_BUTTON].previous_value == LOW))
     {
@@ -185,21 +219,22 @@ bool check_button()
     if (SERIAL_DEBUG_ENABLED && there_was_system_changed == 1)
     {
         if (sensors[SENSOR_BUTTON].state == 1)
-        {
             Serial.println("Sistema encendido");
-        }
         else
-        {
             Serial.println("Sistema apagado");
-        }
     }
-    /*******************/
+    
     return there_was_system_changed;
 }
 
 int check_water()
 {
-	return R_OK;
+    
+    
+    prevTimeBuzzer = millis();//Needed for buzzer..
+    new_event   = EV_NEED_WATER; // not enough water
+    return R_INTERRUPTION;
+    return R_OK;
 }
 
 int check_humidity()
@@ -209,13 +244,13 @@ int check_humidity()
 	if (sensors[SENSOR_HUMIDITY].current_value <= HUMIDITY_LOW)
 	{
 		Serial.println("Hay poca humedad. Regar");
-		turn_on_led_red(); // Solo para probar la conexion del led
+		turn_on_red_led(); // Solo para probar la conexion del led
 		//  new_event   = EV_NEED_WATER;
 		//  return R_INTERRUPTION;
 	}
 	if (sensors[SENSOR_HUMIDITY].current_value < HUMIDITY_HIGH && sensors[SENSOR_HUMIDITY].current_value > HUMIDITY_LOW)
 	{
-		turn_off_led_red(); // Solo para probar la conexion del led
+		turn_off_red_led(); // Solo para probar la conexion del led
 		Serial.println("humedad NORMAL");
 	}
 
@@ -234,8 +269,8 @@ int check_humidity()
 void off_()
 {
     current_state = ST_OFF;
-	turn_off_led_green();
-    turn_off_led_red();
+	turn_off_green_led();
+    turn_off_red_led();
 
   /*  if (SERIAL_DEBUG_ENABLED)
     {
@@ -243,10 +278,13 @@ void off_()
     }*/
 }
 
+// launch the alarm & start the twinkle red led
 void warning_()
 {
     current_state = ST_WARNING;
-    turn_on_led_red();
+    turn_on_red_led();
+    turn_on_alarm();
+
     /*  if (SERIAL_DEBUG_ENABLED )
           Serial.println("Sistema con en alarma o con errores");
       */
@@ -255,8 +293,8 @@ void warning_()
 void status_check_()
 {
     current_state = ST_STATUS_CHECK;
-	turn_off_led_red();
-    turn_on_led_green();
+	turn_off_red_led();
+    turn_on_green_led();
    /* if (SERIAL_DEBUG_ENABLED )
         Serial.println("Inicio de monitoreo de temperatura humedad y cantidad de agua");
 	*/
@@ -274,18 +312,23 @@ void watering_()
 void error_()
 {
     //current_state = ST_ERROR ?;
-	turn_on_led_red();
+	turn_on_red_led();
     Serial.println("<<<<<<<<<<<<<<<<< OCCURIO UN ERROR >>>>>>>>>>>>>>>>>>>>>");
 }
 //----------------------------------------------
 //----------- CHECK FOR NEW EVENTS -------------
 void getNewEvent()
-{
-    if (check_button())
+{   
+    if (check_button()) // ON/OFF BUTTON..
     {
         new_event = EV_BUTTON;
         return;
     }
+    // if( current_state == ST_WARNING)
+    // {
+    //     new_event = EV_WARNING;
+    //     return;
+    // }
     if (current_state != ST_OFF)
     {
         if(check_water() == R_INTERRUPTION )
@@ -309,8 +352,8 @@ void state_machine()
     getNewEvent();
     if ((new_event >= 0) && (new_event < MAX_EVENTS) && (current_state >= 0) && (current_state < MAX_STATES))
     {
-
-        DebugPrintStatus(states_s[current_state], events_s[new_event]);
+        if (new_event != EV_CONTROL)
+            DebugPrintStatus(states_s[current_state], events_s[new_event]);
         // Launch the action
         state_table[current_state][new_event]();
 		
