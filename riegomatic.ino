@@ -35,7 +35,7 @@
 
 /*CONSTANTES*/
 #define PIN_GREEN_LED 9
-#define PIN_RED_LED 8
+#define PIN_RED_LED 3
 #define PIN_BUTTON 7
 #define PIN_HUMIDITY_SENSOR A0
 #define PIN_DISTANCE_SENSOR 12
@@ -75,8 +75,8 @@ stSensor sensors[MAX_CANT_SENSORES];
 enum states     {    ST_OFF,    ST_STATUS_CHECK,    ST_WATERING,    ST_WARNING} current_state;
 String states_s[] = {"OFF",     "STATUS_CHECK",     "WATERING",     "WARNING"};
 
-enum events         {    EV_BUTTON,    EV_CONTROL,           EV_WARNING,    EV_NEED_WATER,    EV_TIMEOUT,    EV_UNKNOW,    EV_SOUND1,    EV_SOUND2} new_event;
-String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING", "WARNING", "NEED_WATER",          "TIMEOUT",      "UNKNOW",   "SOUND1",    "SOUND2"};
+enum events         {    EV_BUTTON,    EV_CONTROL,           EV_WARNING,    EV_NEED_WATER,    EV_TIMEOUT,    EV_UNKNOW } new_event;
+String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING", "WARNING_LOW_WATER_LEVEL", "NEED_WATER",          "TIMEOUT",      "UNKNOW"};
 
 #define MAX_STATES 4
 #define MAX_EVENTS 8
@@ -122,7 +122,7 @@ void do_init()
     // sensors[SENSOR_DISTANCE].state = 0;
 
     /* INTIALIZE FIRST EVENT*/
-    current_state = ST_STATUS_CHECK;
+    current_state = ST_STATUS_CHECK; //tiene que ir el ST_OFF
     new_event = EV_UNKNOW;
 
     // lct = millis(); // ultimo tiempo actual.
@@ -142,45 +142,85 @@ void turn_on_green_led()
     // Serial.println("Led prendido");
 }
 
+#define TIME_MAX_MILLIS 1500
+#define TIME_SECOND_TONE_BUZZER_MAX_MILLIS 500
+#define TIME_TURN_OFF_RED_LED 260
+#define HIGH_LEVEL_BRIGHTNESS 255
+#define LOW_LEVEL_BRIGHTNESS 0
+
+
+int brightness;    
+int curTimeLEDWarning;
+int prevTimeLEDWarning;
+int curTimeLEDWarning2;
+int prevTimeLEDWarning2;
+bool flagLedWarning;
+
+int curTimeBuzzer;
+int prevTimeBuzzer;
+int curTimeBuzzer2;
+int prevTimeBuzzer2;
+bool flagBuzzer = false;
+bool flagLaunchBuzzerTimer = false;
+bool flagLaunchAlarm = false;
+
 void turn_on_red_led()
 {
-    digitalWrite(PIN_RED_LED, HIGH);
+    curTimeLEDWarning = millis();
+    DebugPrint("curTimeLEDWarning: " + String(curTimeLEDWarning));
+    DebugPrint("prevTimeLEDWarning: " + String(prevTimeLEDWarning));
+
+     if (curTimeLEDWarning - prevTimeLEDWarning > TIME_MAX_MILLIS)
+    {
+        brightness = HIGH_LEVEL_BRIGHTNESS;
+        flagLedWarning = true;
+        prevTimeLEDWarning = millis();
+        prevTimeLEDWarning2 = millis();
+        analogWrite(PIN_RED_LED, brightness); // Analog write ( PWM ) in the PIN_RED_LED
+    }
+
+    curTimeLEDWarning2 = millis();
+    if (curTimeLEDWarning2 - prevTimeLEDWarning2 > TIME_TURN_OFF_RED_LED && flagLedWarning)
+    {
+        brightness = LOW_LEVEL_BRIGHTNESS;
+        analogWrite(PIN_RED_LED, brightness);
+        flagLedWarning = false;
+        prevTimeLEDWarning = millis();
+    }
 }
 
 void turn_off_red_led()
 {
-    digitalWrite(PIN_RED_LED, LOW);
+    flagLedWarning = false;
+    brightness = 0;
+    analogWrite(PIN_RED_LED, brightness);
 }
-
-#define TIME_MAX_MILLIS 2000
-#define TIME_SECOND_TONE_BUZZER_MAX_MILLIS 500
-
-int curTime;
-int prevTime;
-int curTimeBuzzer;
-int prevTimeBuzzer;
-int flagBuzzer = 0;
-
 
 void turn_on_alarm()
 {
     curTimeBuzzer = millis();
 
+    DebugPrint("curTimeBuzzer: " + String(curTimeBuzzer));
+    DebugPrint("prevTimeBuzzer: " + String(prevTimeBuzzer));
+
 	if(curTimeBuzzer - prevTimeBuzzer > TIME_MAX_MILLIS)
 	{
 		// launch first buzzer sound & second timer.
-		flagBuzzer = 1;
-		prevTime = millis();
+        flagLaunchBuzzerTimer = false;
+		flagBuzzer = true;
+		prevTimeBuzzer2 = millis();
 		prevTimeBuzzer =  millis();
-		tone(PIN_BUZZER, 1915, 400);
+		tone(PIN_BUZZER, 1915, 200);
+        DebugPrint("Sound Buzzer 1");
 	}
 
-	curTime = millis();
-	if( (curTime-prevTime) >= TIME_SECOND_TONE_BUZZER_MAX_MILLIS && flagBuzzer)
+	curTimeBuzzer2 = millis();
+	if( (curTimeBuzzer2-prevTimeBuzzer2) >= TIME_SECOND_TONE_BUZZER_MAX_MILLIS && flagBuzzer)
 	{
 		// launch second buzzer sound.
-		tone(PIN_BUZZER, 1432, 400);
-		flagBuzzer = 0;
+		tone(PIN_BUZZER, 1432, 200);
+        DebugPrint("Sound Buzzer 2");
+		flagBuzzer = false;
 	}
 
     DebugPrint("Alarma prendida");
@@ -229,10 +269,18 @@ bool check_button()
 
 int check_water()
 {
-    
-    
-    prevTimeBuzzer = millis();//Needed for buzzer..
-    new_event   = EV_NEED_WATER; // not enough water
+
+    if (!flagLaunchBuzzerTimer) // if the timer is not launched, launch it.
+    {
+        prevTimeBuzzer = millis(); // Needed for buzzer..
+        flagLaunchBuzzerTimer = true;
+    }
+    if(!flagLaunchAlarm){
+        prevTimeLEDWarning = millis();
+        flagLaunchAlarm = true;
+    }
+
+    new_event   = EV_WARNING; // not enough water
     return R_INTERRUPTION;
     return R_OK;
 }
