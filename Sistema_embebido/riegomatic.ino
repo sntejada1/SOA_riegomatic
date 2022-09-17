@@ -227,7 +227,7 @@ int check_water()
 {
   distance = read_sensor_distance()/58;
 	
-  if(distance > DISTANCE_MIN){
+  if(distance < DISTANCE_MIN){
     return R_OK;
   }
   else {
