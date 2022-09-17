@@ -40,14 +40,16 @@
 #define PIN_RED_LED 8
 #define PIN_BUTTON 7
 #define PIN_HUMIDITY_SENSOR A0
-#define PIN_DISTANCE_SENSOR 12
+#define PIN_DISTANCE_SENSOR_TRIGGER 13
+#define PIN_DISTANCE_SENSOR_ECHO 12
 #define PIN_TEMPERATURE_SENSOR 0
 
 #define MAX_CANT_SENSORES 4
 #define SENSOR_BUTTON 0
-#define SENSOR_DISTANCE 1
-#define SENSOR_TEMPERATURE 2
-#define SENSOR_HUMIDITY 3
+#define SENSOR_DISTANCE_TRIGGER 1
+#define SENSOR_DISTANCE_ECHO 2
+#define SENSOR_TEMPERATURE 3
+#define SENSOR_HUMIDITY 4
 #define ACT_RIEGO 10
 
 /*RESPUESTAS*/
@@ -59,6 +61,8 @@
 /*UMBRALES*/
 #define HUMIDITY_LOW 200
 #define HUMIDITY_HIGH 800
+#define DISTANCE_MIN 128
+#define TIEMPO_MAX_MILIS 5
 
 /*Sensor structure*/
 struct stSensor
@@ -97,6 +101,9 @@ transition state_table[MAX_STATES][MAX_EVENTS] =
 //-------------- GLOBAL VARIABLES --------------
 // int lct; //last current time.
 long humidity;
+long distance;
+unsigned long tiempo_actual;
+unsigned long tiempo_anterior;
 
 
 //-----------------------------------------------
@@ -119,9 +126,11 @@ void do_init()
     sensors[SENSOR_BUTTON].state = 0; // inicia sin presionar
 
     /*DISTANCE SENSOR*/
-    // pinMode(PIN_DISTANCE_SENSOR, INPUT);
-    // sensors[SENSOR_DISTANCE].pin    = PIN_DISTANCE_SENSOR;
-    // sensors[SENSOR_DISTANCE].state = 0;
+    pinMode(PIN_DISTANCE_SENSOR_TRIGGER, OUTPUT);
+    pinMode(PIN_DISTANCE_SENSOR_ECHO, INPUT);
+    sensors[SENSOR_DISTANCE_TRIGGER].pin = PIN_DISTANCE_SENSOR_TRIGGER;
+    sensors[SENSOR_DISTANCE_ECHO].pin = PIN_DISTANCE_SENSOR_ECHO;
+  // sensors[SENSOR_DISTANCE].state = 0;
 
     /* INTIALIZE FIRST EVENT*/
     current_state = ST_OFF;
@@ -163,7 +172,26 @@ int read_sensor_humidity()
 
 long read_sensor_distance()
 {
-    return analogRead(PIN_DISTANCE_SENSOR);
+    tiempo_anterior=0;
+    //Limpio el trigger
+    digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,LOW);
+    tiempo_actual=millis();
+    //Dejo pasar 5 milisegundos
+    if( (tiempo_actual-tiempo_anterior) >= (TIEMPO_MAX_MILIS))
+    {
+      //Pongo el trigger en HIGH
+      digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,HIGH);
+      tiempo_anterior = tiempo_actual;
+      tiempo_actual=0;
+      //Dejo pasar 10 milisegundos
+      if( (tiempo_actual-tiempo_anterior) >= (TIEMPO_MAX_MILIS*2))
+      {
+          //Apago el trigger
+          digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,LOW); 
+          //Leo la señal echo y retorno el tiempo del sonido
+          return pulseIn(PIN_DISTANCE_SENSOR_ECHO,HIGH);
+      } 
+    } 
 }
 
 bool check_button()
@@ -197,7 +225,16 @@ bool check_button()
 
 int check_water()
 {
-	return R_OK;
+  distance = read_sensor_distance()/58;
+	
+  if(distance > DISTANCE_MIN){
+    return R_OK;
+  }
+  else {
+    new_event = EV_WARNING;
+    return R_INTERRUPTION;
+  }
+  	
 }
 
 int check_humidity()
