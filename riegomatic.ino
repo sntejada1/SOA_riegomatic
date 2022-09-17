@@ -35,17 +35,18 @@
 
 /*CONSTANTES*/
 #define PIN_GREEN_LED 9
-#define PIN_RED_LED 3
+#define PIN_RED_LED 8
 #define PIN_BUTTON 7
 #define PIN_HUMIDITY_SENSOR A0
-#define PIN_DISTANCE_SENSOR 12
+#define PIN_DISTANCE_SENSOR_TRIGGER 13
+#define PIN_DISTANCE_SENSOR_ECHO 12
 #define PIN_TEMPERATURE_SENSOR 0
 #define PIN_BUZZER 10
 
 #define MAX_CANT_SENSORES 4
 #define SENSOR_BUTTON 0
-#define SENSOR_DISTANCE 1
-#define SENSOR_TEMPERATURE 2
+#define SENSOR_DISTANCE_TRIGGER 1
+#define SENSOR_DISTANCE_ECHO 2
 #define SENSOR_HUMIDITY 3
 #define ACT_RIEGO 10
 
@@ -57,6 +58,8 @@
 /*UMBRALES*/
 #define HUMIDITY_LOW 200
 #define HUMIDITY_HIGH 800
+#define DISTANCE_MIN 128
+#define TIEMPO_MAX_MILIS 5
 
 //----------------------------------------------
 //-------------- GLOBAL VARIABLES --------------
@@ -79,7 +82,7 @@ enum events         {    EV_BUTTON,    EV_CONTROL,           EV_WARNING,    EV_N
 String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING", "WARNING_LOW_WATER_LEVEL", "NEED_WATER",          "TIMEOUT",      "UNKNOW"};
 
 #define MAX_STATES 4
-#define MAX_EVENTS 8
+#define MAX_EVENTS 6
 
 typedef void (*transition)();
 transition state_table[MAX_STATES][MAX_EVENTS] =
@@ -91,8 +94,12 @@ transition state_table[MAX_STATES][MAX_EVENTS] =
   //EV_BUTTON , EV_CONTROL        , EV_WARNING , EV_NEED_WATER , EV_TIMEOUT  , EV_UNKNOW
 };
 
-// int lct; //last current time. // desconozco el uso de esta variable
+//----------------------------------------------
+//-------------- GLOBAL VARIABLES --------------
 long humidity;
+long distance;
+unsigned long currentTimeDistance;
+unsigned long lastCurrentTimeDistance;
 
 //-----------------------------------------------
 //----------------- INITIALIZE ------------------
@@ -117,15 +124,14 @@ void do_init()
     sensors[SENSOR_BUTTON].state = 0; // inicia sin presionar
 
     /*DISTANCE SENSOR*/
-    // pinMode(PIN_DISTANCE_SENSOR, INPUT);
-    // sensors[SENSOR_DISTANCE].pin    = PIN_DISTANCE_SENSOR;
-    // sensors[SENSOR_DISTANCE].state = 0;
+    pinMode(PIN_DISTANCE_SENSOR_TRIGGER, OUTPUT);
+    pinMode(PIN_DISTANCE_SENSOR_ECHO, INPUT);
+    sensors[SENSOR_DISTANCE_TRIGGER].pin = PIN_DISTANCE_SENSOR_TRIGGER;
+    sensors[SENSOR_DISTANCE_ECHO].pin = PIN_DISTANCE_SENSOR_ECHO;
 
     /* INTIALIZE FIRST EVENT*/
-    current_state = ST_STATUS_CHECK; //tiene que ir el ST_OFF
+    current_state = ST_OFF;
     new_event = EV_UNKNOW;
-
-    // lct = millis(); // ultimo tiempo actual.
 }
 
 //----------------------------------------------
@@ -167,8 +173,8 @@ bool flagLaunchAlarm = false;
 void turn_on_red_led()
 {
     curTimeLEDWarning = millis();
-    DebugPrint("curTimeLEDWarning: " + String(curTimeLEDWarning));
-    DebugPrint("prevTimeLEDWarning: " + String(prevTimeLEDWarning));
+   //DebugPrint("curTimeLEDWarning: " + String(curTimeLEDWarning));
+    //DebugPrint("prevTimeLEDWarning: " + String(prevTimeLEDWarning));
 
      if (curTimeLEDWarning - prevTimeLEDWarning > TIME_MAX_MILLIS)
     {
@@ -211,7 +217,7 @@ void turn_on_alarm()
 		prevTimeBuzzer2 = millis();
 		prevTimeBuzzer =  millis();
 		tone(PIN_BUZZER, 1915, 200);
-        DebugPrint("Sound Buzzer 1");
+       // DebugPrint("Sound Buzzer 1");
 	}
 
 	curTimeBuzzer2 = millis();
@@ -219,7 +225,7 @@ void turn_on_alarm()
 	{
 		// launch second buzzer sound.
 		tone(PIN_BUZZER, 1432, 200);
-        DebugPrint("Sound Buzzer 2");
+       // DebugPrint("Sound Buzzer 2");
 		flagBuzzer = false;
 	}
 
@@ -238,8 +244,28 @@ int read_sensor_humidity()
 
 long read_sensor_distance()
 {
-    return analogRead(PIN_DISTANCE_SENSOR);
+    lastCurrentTimeDistance = 0;
+    //Limpio el trigger
+    digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,LOW);
+    currentTimeDistance=millis();
+    //Dejo pasar 5 milisegundos
+    if( (currentTimeDistance-lastCurrentTimeDistance) >= (TIEMPO_MAX_MILIS))
+    {
+      //Pongo el trigger en HIGH
+      digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,HIGH);
+      lastCurrentTimeDistance = currentTimeDistance;
+      currentTimeDistance=0;
+      //Dejo pasar 10 milisegundos
+      if( (currentTimeDistance-lastCurrentTimeDistance) >= (TIEMPO_MAX_MILIS*2))
+      {
+          //Apago el trigger
+          digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,LOW); 
+          //Leo la señal echo y retorno el tiempo del sonido
+          return pulseIn(PIN_DISTANCE_SENSOR_ECHO,HIGH);
+      } 
+    } 
 }
+
 
 //Checks if the button was pressed to turn on or off the system..
 bool check_button()
@@ -269,7 +295,12 @@ bool check_button()
 
 int check_water()
 {
-
+  distance = read_sensor_distance()/58;
+	
+  if(distance < DISTANCE_MIN){
+    return R_OK;
+  }
+  else {
     if (!flagLaunchBuzzerTimer) // if the timer is not launched, launch it.
     {
         prevTimeBuzzer = millis(); // Needed for buzzer..
@@ -279,12 +310,11 @@ int check_water()
         prevTimeLEDWarning = millis();
         flagLaunchAlarm = true;
     }
-
-    new_event   = EV_WARNING; // not enough water
+    new_event = EV_WARNING;
     return R_INTERRUPTION;
-    return R_OK;
+  }
+  	
 }
-
 int check_humidity()
 {
 	read_sensor_humidity();
@@ -425,3 +455,5 @@ void loop()
 {
     state_machine();
 }
+
+//FIN 
