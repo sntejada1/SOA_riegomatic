@@ -42,6 +42,7 @@
 #define PIN_DISTANCE_SENSOR_ECHO 12
 #define PIN_TEMPERATURE_SENSOR 0
 #define PIN_BUZZER 10
+#define PIN_RELE 2
 
 #define MAX_CANT_SENSORES 4
 #define SENSOR_BUTTON 0
@@ -60,6 +61,17 @@
 #define HUMIDITY_HIGH 800
 #define DISTANCE_MIN 128
 #define TIEMPO_MAX_MILIS 5
+
+
+#define TIME_MAX_MILLIS 1500
+#define TIME_SECOND_TONE_BUZZER_MAX_MILLIS 500
+#define TIME_TURN_OFF_RED_LED 260
+#define HIGH_LEVEL_BRIGHTNESS 255
+#define LOW_LEVEL_BRIGHTNESS 0
+
+#define MAX_STATES 4
+#define MAX_EVENTS 6
+
 
 //----------------------------------------------
 //-------------- GLOBAL VARIABLES --------------
@@ -81,15 +93,14 @@ String states_s[] = {"OFF",     "STATUS_CHECK",     "WATERING",     "WARNING"};
 enum events         {    EV_BUTTON,    EV_CONTROL,           EV_WARNING,    EV_NEED_WATER,    EV_TIMEOUT,    EV_UNKNOW } new_event;
 String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING", "WARNING_LOW_WATER_LEVEL", "NEED_WATER",          "TIMEOUT",      "UNKNOW"};
 
-#define MAX_STATES 4
-#define MAX_EVENTS 6
+
 
 typedef void (*transition)();
 transition state_table[MAX_STATES][MAX_EVENTS] =
 {
   {status_check_    , error_      , error_     , error_       , error_       , off_      } , // state ST_OFF
   {off_       , status_check_     , warning_   , watering_    , warning_     , error_    } , // state ST_STATUS_CHECK
-  {off_       , status_check_     , warning_   , error_       , warning_     , error_    } , // state ST_WATERING
+  {off_       , status_check_     , warning_   , watering_    , warning_     , error_    } , // state ST_WATERING
   {off_       , status_check_     , warning_   , error_       , warning_     , error_    }   // state ST_WARNING
   //EV_BUTTON , EV_CONTROL        , EV_WARNING , EV_NEED_WATER , EV_TIMEOUT  , EV_UNKNOW
 };
@@ -100,6 +111,23 @@ long humidity;
 long distance;
 unsigned long currentTimeDistance;
 unsigned long lastCurrentTimeDistance;
+unsigned long current_time_water_pump;
+unsigned long past_time_water_pump;
+int state_water_pump;
+int brightness;    
+int curTimeLEDWarning;
+int prevTimeLEDWarning;
+int curTimeLEDWarning2;
+int prevTimeLEDWarning2;
+bool flagLedWarning;
+
+int curTimeBuzzer;
+int prevTimeBuzzer;
+int curTimeBuzzer2;
+int prevTimeBuzzer2;
+bool flagBuzzer = false;
+bool flagLaunchBuzzerTimer = false;
+bool flagLaunchAlarm = false;
 
 //-----------------------------------------------
 //----------------- INITIALIZE ------------------
@@ -129,6 +157,11 @@ void do_init()
     sensors[SENSOR_DISTANCE_TRIGGER].pin = PIN_DISTANCE_SENSOR_TRIGGER;
     sensors[SENSOR_DISTANCE_ECHO].pin = PIN_DISTANCE_SENSOR_ECHO;
 
+    //BOMBA AGUA 
+    pinMode(PIN_RELE, OUTPUT);
+    past_time_water_pump=millis();
+    state_water_pump=0;
+
     /* INTIALIZE FIRST EVENT*/
     current_state = ST_OFF;
     new_event = EV_UNKNOW;
@@ -148,27 +181,16 @@ void turn_on_green_led()
     // Serial.println("Led prendido");
 }
 
-#define TIME_MAX_MILLIS 1500
-#define TIME_SECOND_TONE_BUZZER_MAX_MILLIS 500
-#define TIME_TURN_OFF_RED_LED 260
-#define HIGH_LEVEL_BRIGHTNESS 255
-#define LOW_LEVEL_BRIGHTNESS 0
-
-
-int brightness;    
-int curTimeLEDWarning;
-int prevTimeLEDWarning;
-int curTimeLEDWarning2;
-int prevTimeLEDWarning2;
-bool flagLedWarning;
-
-int curTimeBuzzer;
-int prevTimeBuzzer;
-int curTimeBuzzer2;
-int prevTimeBuzzer2;
-bool flagBuzzer = false;
-bool flagLaunchBuzzerTimer = false;
-bool flagLaunchAlarm = false;
+void water_pump_action(int state)
+{
+    if(state == 1){
+        digitalWrite(PIN_RELE, HIGH);
+   
+    } else {
+        digitalWrite(PIN_RELE, LOW);
+        current_state = ST_STATUS_CHECK;
+    }
+}
 
 void turn_on_red_led()
 {
@@ -324,7 +346,7 @@ int check_humidity()
 		Serial.println("Hay poca humedad. Regar");
 		turn_on_red_led(); // Solo para probar la conexion del led
 		//  new_event   = EV_NEED_WATER;
-		//  return R_INTERRUPTION;
+		 return R_INTERRUPTION;
 	}
 	if (sensors[SENSOR_HUMIDITY].current_value < HUMIDITY_HIGH && sensors[SENSOR_HUMIDITY].current_value > HUMIDITY_LOW)
 	{
@@ -349,7 +371,8 @@ void off_()
     current_state = ST_OFF;
 	turn_off_green_led();
     turn_off_red_led();
-
+    digitalWrite(PIN_RELE, LOW);
+    state_water_pump=0; // para dejar el estado de la bomba en apagado
   /*  if (SERIAL_DEBUG_ENABLED)
     {
         Serial.println("Sistema apagado");
@@ -381,10 +404,14 @@ void status_check_()
 void watering_()
 {
     current_state = ST_WATERING;
-	Serial.println("Habilitando salida de agua");
-    digitalWrite(ACT_RIEGO, HIGH);
-    delay(2000);
-    digitalWrite(ACT_RIEGO, LOW);
+    current_time_water_pump = millis();
+    if( current_time_water_pump - past_time_water_pump > 2000 ) // solo voy a regar por 2 segundos
+    {
+        past_time_water_pump = current_time_water_pump;
+        state_water_pump = !state_water_pump;
+        water_pump_action(state_water_pump); // cuando apaga la bomba pasa a satus check
+
+    }
 }
 
 void error_()
@@ -409,12 +436,17 @@ void getNewEvent()
     // }
     if (current_state != ST_OFF)
     {
-        if(check_water() == R_INTERRUPTION )
+        if(current_state != ST_WATERING && check_water() == R_INTERRUPTION )
 			return;
-		if(check_humidity() == R_INTERRUPTION )
-			return;
-        /*si no se genero ningun evento nuevo*/
-        new_event = EV_CONTROL;
+		if(current_state == ST_WATERING || (current_state != ST_WARNING && check_humidity() == R_INTERRUPTION))
+        {
+            new_event = EV_NEED_WATER; // valor 3
+        } else {
+            
+            /*si no se genero ningun evento nuevo*/
+            new_event = EV_CONTROL;
+        }
+			
     }
     else
     {
