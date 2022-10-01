@@ -104,10 +104,10 @@ String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING", "WARNING_LOW_WATER
 typedef void (*transition)();
 transition state_table[MAX_STATES][MAX_EVENTS] =
 {
-  {status_check_    , error_      , error_     , error_       , error_       , off_      } , // state ST_OFF
+  {status_check_    , off_			, off_     , off_       , error_       , off_      } , // state ST_OFF
   {off_       , status_check_     , warning_   , watering_    , warning_     , error_    } , // state ST_STATUS_CHECK
-  {off_       , status_check_     , warning_   , watering_    , warning_     , error_    } , // state ST_WATERING
-  {off_       , status_check_     , warning_   , error_       , warning_     , error_    }   // state ST_WARNING
+  {off_       , status_check_     , watering_   , watering_    , warning_     , error_    } , // state ST_WATERING
+  {off_       , status_check_     , warning_   , warning_       , warning_     , error_    }   // state ST_WARNING
   //EV_BUTTON , EV_CONTROL        , EV_WARNING , EV_NEED_WATER , EV_TIMEOUT  , EV_UNKNOW
 };
 
@@ -334,7 +334,7 @@ int check_water()
         prevTimeLEDWarning = millis();
         flagLaunchAlarm = true;
     }
-    new_event = EV_WARNING;
+    
     return R_INTERRUPTION;
   }
   	
@@ -412,24 +412,19 @@ void getNewEvent()
         new_event = EV_BUTTON;
         return;
     }
-    if (current_state != ST_OFF)
-    {
-        if(current_state != ST_WATERING && check_water() == R_INTERRUPTION )
-            return;
-        if(current_state == ST_WATERING || (current_state != ST_WARNING && check_humidity() == R_INTERRUPTION))
-        {
-            new_event = EV_NEED_WATER; // valor 3
-        } else {
-            
-            /*si no se genero ningun evento nuevo*/
-            new_event = EV_CONTROL;
-        }
-			
-    }
-    else
-    {
-        new_event = EV_UNKNOW;
-    }
+	//ACA CHEQUEAR TIMEOUT
+	if(check_water() == R_INTERRUPTION ){
+		new_event = EV_WARNING;
+		return;
+	}
+	if( check_humidity() == R_INTERRUPTION)
+	{
+		new_event = EV_NEED_WATER; 
+		return;
+	} 
+		
+	/*si no se genero ningun evento nuevo*/
+	new_event = EV_CONTROL;
 
 }
 
