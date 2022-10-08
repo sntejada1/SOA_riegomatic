@@ -32,20 +32,28 @@
         str = "Valor " + sen + " : " + val + "...";\
         DebugPrint(str);\
       }
+#define DebugPrintNovedad(novedad)\
+      {\
+        String str = novedad;\
+        str = "******" + str + "******";\
+        DebugPrint(str);\
+      }
 
 /*CONSTANTES*/
 #define PIN_GREEN_LED 9
-#define PIN_RED_LED 3
+#define PIN_RED_LED 4
 #define PIN_BUTTON 7
 #define PIN_HUMIDITY_SENSOR A0
-#define PIN_DISTANCE_SENSOR 12
+#define PIN_DISTANCE_SENSOR_TRIGGER 13
+#define PIN_DISTANCE_SENSOR_ECHO 12
 #define PIN_TEMPERATURE_SENSOR 0
 #define PIN_BUZZER 10
+#define PIN_RELE 2
 
 #define MAX_CANT_SENSORES 4
 #define SENSOR_BUTTON 0
-#define SENSOR_DISTANCE 1
-#define SENSOR_TEMPERATURE 2
+#define SENSOR_DISTANCE_TRIGGER 1
+#define SENSOR_DISTANCE_ECHO 2
 #define SENSOR_HUMIDITY 3
 #define ACT_RIEGO 10
 
@@ -57,6 +65,18 @@
 /*UMBRALES*/
 #define HUMIDITY_LOW 200
 #define HUMIDITY_HIGH 800
+#define DISTANCE_MIN 128
+#define TIEMPO_MAX_MILIS 5
+
+
+#define TIME_MAX_MILLIS 1200
+#define TIMEOUT_WARNING 500
+#define HIGH_LEVEL_BRIGHTNESS 255
+#define LOW_LEVEL_BRIGHTNESS 0
+
+#define MAX_STATES 4
+#define MAX_EVENTS 7
+
 
 //----------------------------------------------
 //-------------- GLOBAL VARIABLES --------------
@@ -72,27 +92,40 @@ stSensor sensors[MAX_CANT_SENSORES];
 
 //----------------------------------------------
 
-enum states     {    ST_OFF,    ST_STATUS_CHECK,    ST_WATERING,    ST_WARNING} current_state;
+enum states     {    ST_OFF,    ST_STATUS_CHECK,    ST_WATERING,    ST_WARNING} current_state, last_state;
 String states_s[] = {"OFF",     "STATUS_CHECK",     "WATERING",     "WARNING"};
 
-enum events         {    EV_BUTTON,    EV_CONTROL,           EV_WARNING,    EV_NEED_WATER,    EV_TIMEOUT,    EV_UNKNOW } new_event;
-String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING", "WARNING_LOW_WATER_LEVEL", "NEED_WATER",          "TIMEOUT",      "UNKNOW"};
+enum events         {    EV_BUTTON,          EV_CONTROL,       EV_WARNING_ENABLE_ALARM_AND_LIGHT, EV_WARNING_SECTONE_ALARM_AND_TURN_OFF_LIGHT ,    EV_NEED_WATER,    EV_TIMEOUT,    EV_UNKNOW } new_event, last_event;
+String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING",   "WARNING_LOW_WATER_LEVEL",            "WARNING_LOW_WATER_LEVEL_2" ,"NEED_WATER",          "TIMEOUT",      "UNKNOW"};
 
-#define MAX_STATES 4
-#define MAX_EVENTS 8
+
 
 typedef void (*transition)();
 transition state_table[MAX_STATES][MAX_EVENTS] =
 {
-  {status_check_    , error_      , error_     , error_       , error_       , off_      } , // state ST_OFF
-  {off_       , status_check_     , warning_   , watering_    , warning_     , error_    } , // state ST_STATUS_CHECK
-  {off_       , status_check_     , warning_   , error_       , warning_     , error_    } , // state ST_WATERING
-  {off_       , status_check_     , warning_   , error_       , warning_     , error_    }   // state ST_WARNING
-  //EV_BUTTON , EV_CONTROL        , EV_WARNING , EV_NEED_WATER , EV_TIMEOUT  , EV_UNKNOW
+  {status_check_    , off_		      , off_                          , off_                                    , off_       , error_       , off_      } , // state ST_OFF
+  {off_       , status_check_       , warning_                      , warning_2                                , watering_    , warning_     , error_    } , // state ST_STATUS_CHECK
+  {off_       , status_check_       , watering_                     , watering_                                , watering_    , warning_     , error_    } , // state ST_WATERING
+  {off_       , status_check_       , warning_                      , warning_2                                , warning_       , warning_     , error_    }   // state ST_WARNING
+  //EV_BUTTON , EV_CONTROL   , EV_WARNING_ENABLE_ALARM_AND_LIGHT, EV_WARNING_SECTONE_ALARM_AND_TURN_OFF_LIGHT , EV_NEED_WATER , EV_TIMEOUT  , EV_UNKNOW
 };
 
-// int lct; //last current time. // desconozco el uso de esta variable
+//----------------------------------------------
+//-------------- GLOBAL VARIABLES --------------
 long humidity;
+long distance;
+unsigned long currentTimeDistance;
+unsigned long lastCurrentTimeDistance;
+unsigned long current_time_water_pump;
+unsigned long past_time_water_pump;
+int state_water_pump;
+
+bool flagAlarmLaunched = false;
+int current_time;
+int current_time2;
+int prev_time;
+int prev_time2;
+bool flag = true;
 
 //-----------------------------------------------
 //----------------- INITIALIZE ------------------
@@ -117,15 +150,21 @@ void do_init()
     sensors[SENSOR_BUTTON].state = 0; // inicia sin presionar
 
     /*DISTANCE SENSOR*/
-    // pinMode(PIN_DISTANCE_SENSOR, INPUT);
-    // sensors[SENSOR_DISTANCE].pin    = PIN_DISTANCE_SENSOR;
-    // sensors[SENSOR_DISTANCE].state = 0;
+    pinMode(PIN_DISTANCE_SENSOR_TRIGGER, OUTPUT);
+    pinMode(PIN_DISTANCE_SENSOR_ECHO, INPUT);
+    sensors[SENSOR_DISTANCE_TRIGGER].pin = PIN_DISTANCE_SENSOR_TRIGGER;
+    sensors[SENSOR_DISTANCE_ECHO].pin = PIN_DISTANCE_SENSOR_ECHO;
+
+    //BOMBA AGUA 
+    pinMode(PIN_RELE, OUTPUT);
+    past_time_water_pump=millis();
+    state_water_pump=0;
 
     /* INTIALIZE FIRST EVENT*/
-    current_state = ST_STATUS_CHECK; //tiene que ir el ST_OFF
+    last_state = ST_STATUS_CHECK;
+    current_state = ST_OFF;
+    last_event = EV_UNKNOW;
     new_event = EV_UNKNOW;
-
-    // lct = millis(); // ultimo tiempo actual.
 }
 
 //----------------------------------------------
@@ -133,178 +172,105 @@ void do_init()
 void turn_off_green_led()
 {
     digitalWrite(PIN_GREEN_LED, LOW);
-    // Serial.println("Led apagado");
 }
 
 void turn_on_green_led()
 {
     digitalWrite(PIN_GREEN_LED, HIGH);
-    // Serial.println("Led prendido");
 }
 
-#define TIME_MAX_MILLIS 1500
-#define TIME_SECOND_TONE_BUZZER_MAX_MILLIS 500
-#define TIME_TURN_OFF_RED_LED 260
-#define HIGH_LEVEL_BRIGHTNESS 255
-#define LOW_LEVEL_BRIGHTNESS 0
-
-
-int brightness;    
-int curTimeLEDWarning;
-int prevTimeLEDWarning;
-int curTimeLEDWarning2;
-int prevTimeLEDWarning2;
-bool flagLedWarning;
-
-int curTimeBuzzer;
-int prevTimeBuzzer;
-int curTimeBuzzer2;
-int prevTimeBuzzer2;
-bool flagBuzzer = false;
-bool flagLaunchBuzzerTimer = false;
-bool flagLaunchAlarm = false;
-
-void turn_on_red_led()
+void water_pump_action(int state)
 {
-    curTimeLEDWarning = millis();
-    DebugPrint("curTimeLEDWarning: " + String(curTimeLEDWarning));
-    DebugPrint("prevTimeLEDWarning: " + String(prevTimeLEDWarning));
-
-     if (curTimeLEDWarning - prevTimeLEDWarning > TIME_MAX_MILLIS)
-    {
-        brightness = HIGH_LEVEL_BRIGHTNESS;
-        flagLedWarning = true;
-        prevTimeLEDWarning = millis();
-        prevTimeLEDWarning2 = millis();
-        analogWrite(PIN_RED_LED, brightness); // Analog write ( PWM ) in the PIN_RED_LED
-    }
-
-    curTimeLEDWarning2 = millis();
-    if (curTimeLEDWarning2 - prevTimeLEDWarning2 > TIME_TURN_OFF_RED_LED && flagLedWarning)
-    {
-        brightness = LOW_LEVEL_BRIGHTNESS;
-        analogWrite(PIN_RED_LED, brightness);
-        flagLedWarning = false;
-        prevTimeLEDWarning = millis();
+    if(state == 1){
+        digitalWrite(PIN_RELE, HIGH);
+        DebugPrintNovedad("Regando");
+   
+    } else {
+        digitalWrite(PIN_RELE, LOW);
+        last_state = current_state;
+        current_state = ST_STATUS_CHECK;
+        DebugPrintNovedad("Se termino de regar");
     }
 }
 
 void turn_off_red_led()
 {
-    flagLedWarning = false;
-    brightness = 0;
-    analogWrite(PIN_RED_LED, brightness);
+    analogWrite(PIN_RED_LED, LOW_LEVEL_BRIGHTNESS);
 }
-
-void turn_on_alarm()
-{
-    curTimeBuzzer = millis();
-
-    DebugPrint("curTimeBuzzer: " + String(curTimeBuzzer));
-    DebugPrint("prevTimeBuzzer: " + String(prevTimeBuzzer));
-
-	if(curTimeBuzzer - prevTimeBuzzer > TIME_MAX_MILLIS)
-	{
-		// launch first buzzer sound & second timer.
-        flagLaunchBuzzerTimer = false;
-		flagBuzzer = true;
-		prevTimeBuzzer2 = millis();
-		prevTimeBuzzer =  millis();
-		tone(PIN_BUZZER, 1915, 200);
-        DebugPrint("Sound Buzzer 1");
-	}
-
-	curTimeBuzzer2 = millis();
-	if( (curTimeBuzzer2-prevTimeBuzzer2) >= TIME_SECOND_TONE_BUZZER_MAX_MILLIS && flagBuzzer)
-	{
-		// launch second buzzer sound.
-		tone(PIN_BUZZER, 1432, 200);
-        DebugPrint("Sound Buzzer 2");
-		flagBuzzer = false;
-	}
-
-    DebugPrint("Alarma prendida");
-}
-
 
 int read_sensor_humidity()
 {
     sensors[SENSOR_HUMIDITY].previous_value = sensors[SENSOR_HUMIDITY].current_value;
     sensors[SENSOR_HUMIDITY].current_value = analogRead(PIN_HUMIDITY_SENSOR);
-	DebugPrintMetric("Humedad",sensors[SENSOR_HUMIDITY].current_value);
-    //Serial.println("Humedad" + sensors[SENSOR_HUMIDITY].current_value);
+	  DebugPrintMetric("Humedad",sensors[SENSOR_HUMIDITY].current_value);
     return sensors[SENSOR_HUMIDITY].current_value;
 }
 
 long read_sensor_distance()
 {
-    return analogRead(PIN_DISTANCE_SENSOR);
+    lastCurrentTimeDistance = 0;
+    //Limpio el trigger
+    digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,LOW);
+    currentTimeDistance=millis();
+    //Dejo pasar 5 milisegundos
+    if( (currentTimeDistance-lastCurrentTimeDistance) >= (TIEMPO_MAX_MILIS))
+    {
+      //Pongo el trigger en HIGH
+      digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,HIGH);
+      lastCurrentTimeDistance = currentTimeDistance;
+      currentTimeDistance=0;
+      //Dejo pasar 10 milisegundos
+      if( (currentTimeDistance-lastCurrentTimeDistance) >= (TIEMPO_MAX_MILIS*2))
+      {
+          //Apago el trigger
+          digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,LOW); 
+          //Leo la señal echo y retorno el tiempo del sonido
+          return pulseIn(PIN_DISTANCE_SENSOR_ECHO,HIGH);
+      } 
+    } 
 }
-
 //Checks if the button was pressed to turn on or off the system..
 bool check_button()
 {	
 	bool there_was_system_changed = false;
     /*Sistema se mantiene prendido hasta volver a apretar*/
     sensors[SENSOR_BUTTON].current_value = digitalRead(PIN_BUTTON); //read button value
-    //  Serial.println(sensors[SENSOR_BUTTON].current_value);
     if ((sensors[SENSOR_BUTTON].current_value == HIGH) && (sensors[SENSOR_BUTTON].previous_value == LOW))
     {
         sensors[SENSOR_BUTTON].state = 1 - sensors[SENSOR_BUTTON].state;
         there_was_system_changed = true;
+
+        if (sensors[SENSOR_BUTTON].state == 1)
+        {
+            DebugPrintNovedad("Sistema encendido");
+        }else{
+            DebugPrintNovedad("Sistema apagado");
+        }
     }
     sensors[SENSOR_BUTTON].previous_value = sensors[SENSOR_BUTTON].current_value;
-
-    /*Seccion que loggea si el sistema esta prendido o apagado cuando esta en modo debug*/
-    if (SERIAL_DEBUG_ENABLED && there_was_system_changed == 1)
-    {
-        if (sensors[SENSOR_BUTTON].state == 1)
-            Serial.println("Sistema encendido");
-        else
-            Serial.println("Sistema apagado");
-    }
-    
     return there_was_system_changed;
 }
 
 int check_water()
 {
-
-    if (!flagLaunchBuzzerTimer) // if the timer is not launched, launch it.
-    {
-        prevTimeBuzzer = millis(); // Needed for buzzer..
-        flagLaunchBuzzerTimer = true;
-    }
-    if(!flagLaunchAlarm){
-        prevTimeLEDWarning = millis();
-        flagLaunchAlarm = true;
-    }
-
-    new_event   = EV_WARNING; // not enough water
-    return R_INTERRUPTION;
+  distance = read_sensor_distance()/58;
+	DebugPrintMetric("Distancia sin agua en tanque",distance);
+  if(distance < DISTANCE_MIN){
     return R_OK;
+  }
+  else { //distance to water too long..    
+    return R_INTERRUPTION;
+  }
+  	
 }
-
 int check_humidity()
 {
 	read_sensor_humidity();
 
 	if (sensors[SENSOR_HUMIDITY].current_value <= HUMIDITY_LOW)
 	{
-		Serial.println("Hay poca humedad. Regar");
-		turn_on_red_led(); // Solo para probar la conexion del led
-		//  new_event   = EV_NEED_WATER;
-		//  return R_INTERRUPTION;
-	}
-	if (sensors[SENSOR_HUMIDITY].current_value < HUMIDITY_HIGH && sensors[SENSOR_HUMIDITY].current_value > HUMIDITY_LOW)
-	{
-		turn_off_red_led(); // Solo para probar la conexion del led
-		Serial.println("humedad NORMAL");
-	}
-
-	if (sensors[SENSOR_HUMIDITY].current_value >= HUMIDITY_HIGH)
-	{
-		Serial.println("Hay mucha humedad");
+		DebugPrintNovedad("Hay poca humedad. Se debe regar.");
+		return R_INTERRUPTION;
 	}
 	return R_OK;
 
@@ -316,81 +282,127 @@ int check_humidity()
 
 void off_()
 {
+    last_state = current_state;
     current_state = ST_OFF;
 	turn_off_green_led();
     turn_off_red_led();
-
-  /*  if (SERIAL_DEBUG_ENABLED)
-    {
-        Serial.println("Sistema apagado");
-    }*/
+    digitalWrite(PIN_RELE, LOW);
+    state_water_pump=0; // para dejar el estado de la bomba en apagado
 }
 
 // launch the alarm & start the twinkle red led
 void warning_()
 {
+    last_state = current_state;
     current_state = ST_WARNING;
-    turn_on_red_led();
-    turn_on_alarm();
 
-    /*  if (SERIAL_DEBUG_ENABLED )
-          Serial.println("Sistema con en alarma o con errores");
-      */
+    // turn on the light
+    analogWrite(PIN_RED_LED, HIGH_LEVEL_BRIGHTNESS); // Analog write ( PWM ) in the PIN_RED_LED
+	tone(PIN_BUZZER, 1915, 200);
+
+}
+// 2nd tone alarm & put led off
+void warning_2() 
+{   
+    last_state = current_state;
+    current_state = ST_WARNING;
+    // turn on the light
+    analogWrite(PIN_RED_LED, HIGH_LEVEL_BRIGHTNESS); // Analog write ( PWM ) in the PIN_RED_LED
+    // turn on the alarm's 2nd tone
+    tone(PIN_BUZZER, 1432, 200);
 }
 
 void status_check_()
 {
+    last_state = current_state;
     current_state = ST_STATUS_CHECK;
 	turn_off_red_led();
     turn_on_green_led();
-   /* if (SERIAL_DEBUG_ENABLED )
-        Serial.println("Inicio de monitoreo de temperatura humedad y cantidad de agua");
-	*/
 }
 
 void watering_()
 {
+    last_state = current_state;
     current_state = ST_WATERING;
-	Serial.println("Habilitando salida de agua");
-    digitalWrite(ACT_RIEGO, HIGH);
-    delay(2000);
-    digitalWrite(ACT_RIEGO, LOW);
+    current_time_water_pump = millis();
+    if( current_time_water_pump - past_time_water_pump > 2000 ) // solo voy a regar por 2 segundos
+    {
+        past_time_water_pump = current_time_water_pump;
+        state_water_pump = !state_water_pump;
+        water_pump_action(state_water_pump); // cuando apaga la bomba pasa a satus check
+    }
 }
 
 void error_()
 {
-    //current_state = ST_ERROR ?;
-	turn_on_red_led();
-    Serial.println("<<<<<<<<<<<<<<<<< OCCURIO UN ERROR >>>>>>>>>>>>>>>>>>>>>");
+	// turn_on_red_led();
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    // Ver si queremos hacer algo aca.. la funcion anterior no corre mas..
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    //
+    DebugPrint("<<<<<<<<<<<<<<<<< OCCURIO UN ERROR >>>>>>>>>>>>>>>>>>>>>");
 }
 //----------------------------------------------
 //----------- CHECK FOR NEW EVENTS -------------
+
 void getNewEvent()
 {   
+    last_event = new_event;
     if (check_button()) // ON/OFF BUTTON..
     {
         new_event = EV_BUTTON;
         return;
     }
-    // if( current_state == ST_WARNING)
-    // {
-    //     new_event = EV_WARNING;
-    //     return;
-    // }
-    if (current_state != ST_OFF)
+    // ACA CHEQUEAR TIMEOUT
+    if (check_water() == R_INTERRUPTION)
     {
-        if(check_water() == R_INTERRUPTION )
-			return;
-		if(check_humidity() == R_INTERRUPTION )
-			return;
-        /*si no se genero ningun evento nuevo*/
-        new_event = EV_CONTROL;
+      if(flag)
+      {
+        prev_time = millis();
+        flag = false;
+      }
+
+      current_time = millis(); // take actual..
+      if ( current_time - prev_time > TIME_MAX_MILLIS)
+      { // if the timer is not launched, launch it.
+        flag = true;
+        prev_time = millis();
+        prev_time2 = millis();
+        new_event = EV_WARNING_ENABLE_ALARM_AND_LIGHT; // fire first event..
+        flagAlarmLaunched = true;
+        return;
+      }
+      current_time2 = millis();
+      if (current_time2 - prev_time2 > TIMEOUT_WARNING && flagAlarmLaunched) //after 1500 ms...
+      {
+        new_event = EV_WARNING_SECTONE_ALARM_AND_TURN_OFF_LIGHT;
+        flagAlarmLaunched = false;
+        return;
+      }
     }
-    else
+    if (check_humidity() == R_INTERRUPTION)
     {
-        new_event = EV_UNKNOW;
+      new_event = EV_NEED_WATER;
+      return;
     }
 
+    /*si no se genero ningun evento nuevo*/
+    new_event = EV_CONTROL;
 }
 
 //-----------------------------------------------
@@ -400,16 +412,18 @@ void state_machine()
     getNewEvent();
     if ((new_event >= 0) && (new_event < MAX_EVENTS) && (current_state >= 0) && (current_state < MAX_STATES))
     {
-        if (new_event != EV_CONTROL)
+        if (last_state != current_state || last_event != new_event)
+        {
             DebugPrintStatus(states_s[current_state], events_s[new_event]);
+        }
         // Launch the action
         state_table[current_state][new_event]();
 		
     }
     else
     {
-        Serial.println("<<<<<<<<<<<<<<<<< OCCURIO UN ERROR CON EL EVENTO O ESTADO FUERA DE RANGO ESPERADO >>>>>>>>>>>>>>>>>>>>>");
-		Serial.println("<<<<<<<<<<<<<<<<<    				      REVISAR CODIGO		 				  >>>>>>>>>>>>>>>>>>>>>");
+        DebugPrint("<<<<<<<<<<<<<<<<< OCCURIO UN ERROR CON EL EVENTO O ESTADO FUERA DE RANGO ESPERADO >>>>>>>>>>>>>>>>>>>>>");
+		    DebugPrint("<<<<<<<<<<<<<<<<<    				      REVISAR CODIGO		 				  >>>>>>>>>>>>>>>>>>>>>");
     }
 
 }
@@ -425,3 +439,5 @@ void loop()
 {
     state_machine();
 }
+
+//FIN 
