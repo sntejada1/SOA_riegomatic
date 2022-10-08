@@ -103,12 +103,15 @@ String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING",   "WARNING_LOW_WAT
 typedef void (*transition)();
 transition state_table[MAX_STATES][MAX_EVENTS] =
 {
-  {status_check_    , off_		      , off_                          , off_                                    , off_       , error_       , off_      } , // state ST_OFF
-  {off_       , status_check_       , warning_                      , warning_2                                , watering_    , warning_     , error_    } , // state ST_STATUS_CHECK
-  {off_       , status_check_       , watering_                     , watering_                                , watering_    , warning_     , error_    } , // state ST_WATERING
-  {off_       , status_check_       , warning_                      , warning_2                                , warning_       , warning_     , error_    }   // state ST_WARNING
-  //EV_BUTTON , EV_CONTROL   , EV_WARNING_ENABLE_ALARM_AND_LIGHT, EV_WARNING_SECTONE_ALARM_AND_TURN_OFF_LIGHT , EV_NEED_WATER , EV_TIMEOUT  , EV_UNKNOW
+  {status_check_ , off_		       , off_         , off_        , off_         , error_      , off_      } , // state ST_OFF
+  {off_          , status_check_ , warning_     , warning_2   , watering_    , warning_    , error_    } , // state ST_STATUS_CHECK
+  {off_          , status_check_ , watering_     , error_     , watering_    , warning_    , error_    } , // state ST_WATERING
+  {off_          , status_check_ , warning_     , error_      , warning_     , warning_    , error_    }   // state ST_WARNING
+  //EV_BUTTON    , EV_CONTROL    , EV_WARNING_1 , EV_WARNING_2 , EV_NEED_WATER, EV_TIMEOUT  , EV_UNKNOW
 };
+// EV_WARNING1 = EV_WARNING_ENABLE_ALARM_AND_LIGHT
+// EV_WARNING2 = EV_WARNING_SECTONE_ALARM_AND_TURN_OFF_LIGHT
+
 
 //----------------------------------------------
 //-------------- GLOBAL VARIABLES --------------
@@ -183,13 +186,13 @@ void water_pump_action(int state)
 {
     if(state == 1){
         digitalWrite(PIN_RELE, HIGH);
-        DebugPrintNovedad("Regando");
+      //  DebugPrintNovedad("Regando");
    
     } else {
         digitalWrite(PIN_RELE, LOW);
         last_state = current_state;
         current_state = ST_STATUS_CHECK;
-        DebugPrintNovedad("Se termino de regar");
+       // DebugPrintNovedad("Se termino de regar");
     }
 }
 
@@ -202,7 +205,7 @@ int read_sensor_humidity()
 {
     sensors[SENSOR_HUMIDITY].previous_value = sensors[SENSOR_HUMIDITY].current_value;
     sensors[SENSOR_HUMIDITY].current_value = analogRead(PIN_HUMIDITY_SENSOR);
-	  DebugPrintMetric("Humedad",sensors[SENSOR_HUMIDITY].current_value);
+	  //DebugPrintMetric("Humedad",sensors[SENSOR_HUMIDITY].current_value);
     return sensors[SENSOR_HUMIDITY].current_value;
 }
 
@@ -254,7 +257,7 @@ bool check_button()
 int check_water()
 {
   distance = read_sensor_distance()/58;
-	DebugPrintMetric("Distancia sin agua en tanque",distance);
+	//DebugPrintMetric("Distancia sin agua en tanque",distance);
   if(distance < DISTANCE_MIN){
     return R_OK;
   }
@@ -269,7 +272,7 @@ int check_humidity()
 
 	if (sensors[SENSOR_HUMIDITY].current_value <= HUMIDITY_LOW)
 	{
-		DebugPrintNovedad("Hay poca humedad. Se debe regar.");
+	//	DebugPrintNovedad("Hay poca humedad. Se debe regar.");
 		return R_INTERRUPTION;
 	}
 	return R_OK;
@@ -282,42 +285,43 @@ int check_humidity()
 
 void off_()
 {
-    last_state = current_state;
-    current_state = ST_OFF;
-	turn_off_green_led();
-    turn_off_red_led();
-    digitalWrite(PIN_RELE, LOW);
-    state_water_pump=0; // para dejar el estado de la bomba en apagado
+  last_state = current_state;
+  current_state = ST_OFF;
+  turn_off_green_led();
+  turn_off_red_led();
+  digitalWrite(PIN_RELE, LOW);
+  state_water_pump = 0; // para dejar el estado de la bomba en apagado
 }
 
 // launch the alarm & start the twinkle red led
 void warning_()
 {
-    last_state = current_state;
-    current_state = ST_WARNING;
+  DebugPrint("Inside warning_ function");
+  last_state = current_state;
+  current_state = ST_WARNING;
 
-    // turn on the light
-    analogWrite(PIN_RED_LED, HIGH_LEVEL_BRIGHTNESS); // Analog write ( PWM ) in the PIN_RED_LED
-	tone(PIN_BUZZER, 1915, 200);
-
+  // turn on the light
+  analogWrite(PIN_RED_LED, HIGH_LEVEL_BRIGHTNESS); // Analog write ( PWM ) in the PIN_RED_LED
+  tone(PIN_BUZZER, 1915, 200);
 }
 // 2nd tone alarm & put led off
 void warning_2() 
-{   
-    last_state = current_state;
-    current_state = ST_WARNING;
-    // turn on the light
-    analogWrite(PIN_RED_LED, HIGH_LEVEL_BRIGHTNESS); // Analog write ( PWM ) in the PIN_RED_LED
-    // turn on the alarm's 2nd tone
-    tone(PIN_BUZZER, 1432, 200);
+{
+  DebugPrint("Inside warning_2 function");
+  last_state = current_state;
+  current_state = ST_WARNING;
+  // turn on the light
+  analogWrite(PIN_RED_LED, HIGH_LEVEL_BRIGHTNESS); // Analog write ( PWM ) in the PIN_RED_LED
+  // turn on the alarm's 2nd tone
+  tone(PIN_BUZZER, 1432, 200);
 }
 
 void status_check_()
 {
-    last_state = current_state;
-    current_state = ST_STATUS_CHECK;
-	turn_off_red_led();
-    turn_on_green_led();
+  last_state = current_state;
+  current_state = ST_STATUS_CHECK;
+  turn_off_red_led();
+  turn_on_green_led();
 }
 
 void watering_()
@@ -377,7 +381,7 @@ void getNewEvent()
         flag = false;
       }
 
-      current_time = millis(); // take actual..
+      current_time = millis(); // take current..
       if ( current_time - prev_time > TIME_MAX_MILLIS)
       { // if the timer is not launched, launch it.
         flag = true;
@@ -386,7 +390,7 @@ void getNewEvent()
         new_event = EV_WARNING_ENABLE_ALARM_AND_LIGHT; // fire first event..
         flagAlarmLaunched = true;
         return;
-      }
+      }   
       current_time2 = millis();
       if (current_time2 - prev_time2 > TIMEOUT_WARNING && flagAlarmLaunched) //after 1500 ms...
       {
@@ -395,7 +399,7 @@ void getNewEvent()
         return;
       }
     }
-    if (check_humidity() == R_INTERRUPTION)
+    else if (check_humidity() == R_INTERRUPTION)
     {
       new_event = EV_NEED_WATER;
       return;
@@ -422,7 +426,7 @@ void state_machine()
     }
     else
     {
-        DebugPrint("<<<<<<<<<<<<<<<<< OCCURIO UN ERROR CON EL EVENTO O ESTADO FUERA DE RANGO ESPERADO >>>>>>>>>>>>>>>>>>>>>");
+        DebugPrint("<<<<<<<<<<<<<<<<< EL EVENTO O ESTADO FUERA DE RANGO ESPERADO >>>>>>>>>>>>>>>>>>>>>");
 		    DebugPrint("<<<<<<<<<<<<<<<<<    				      REVISAR CODIGO		 				  >>>>>>>>>>>>>>>>>>>>>");
     }
 
