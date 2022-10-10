@@ -95,22 +95,20 @@ stSensor sensors[MAX_CANT_SENSORES];
 enum states     {    ST_OFF,    ST_STATUS_CHECK,    ST_WATERING,    ST_WARNING} current_state, last_state;
 String states_s[] = {"OFF",     "STATUS_CHECK",     "WATERING",     "WARNING"};
 
-enum events         {    EV_BUTTON,          EV_CONTROL,       EV_WARNING_ENABLE_ALARM_AND_LIGHT, EV_WARNING_SECTONE_ALARM_AND_TURN_OFF_LIGHT ,    EV_NEED_WATER,    EV_TIMEOUT,    EV_UNKNOW } new_event, last_event;
-String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING",   "WARNING_LOW_WATER_LEVEL",            "WARNING_LOW_WATER_LEVEL_2" ,"NEED_WATER",          "TIMEOUT",      "UNKNOW"};
-
-
+enum events         {    EV_BUTTON,          EV_CONTROL,            EV_WARNING_1,                         EV_WARNING_2 ,    EV_NEED_WATER,    EV_TIMEOUT,    EV_UNKNOW } new_event, last_event;
+String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING",   "WARNING_LOW_WATER_LEVEL",    "WARNING_LOW_WATER_LEVEL_2" ,"NEED_WATER",          "TIMEOUT",      "UNKNOW"};
 
 typedef void (*transition)();
 transition state_table[MAX_STATES][MAX_EVENTS] =
 {
   {status_check_ , off_		       , off_         , off_        , off_         , error_      , off_      } , // state ST_OFF
-  {off_          , status_check_ , warning_     , warning_2   , watering_    , warning_    , error_    } , // state ST_STATUS_CHECK
+  {off_          , status_check_ , warning_     , warning2_   , watering_    , warning_    , error_    } , // state ST_STATUS_CHECK
   {off_          , status_check_ , watering_     , error_     , watering_    , warning_    , error_    } , // state ST_WATERING
   {off_          , status_check_ , warning_     , error_      , warning_     , warning_    , error_    }   // state ST_WARNING
   //EV_BUTTON    , EV_CONTROL    , EV_WARNING_1 , EV_WARNING_2 , EV_NEED_WATER, EV_TIMEOUT  , EV_UNKNOW
 };
-// EV_WARNING1 = EV_WARNING_ENABLE_ALARM_AND_LIGHT
-// EV_WARNING2 = EV_WARNING_SECTONE_ALARM_AND_TURN_OFF_LIGHT
+// EV_WARNING1 = Event that enables the alarm's first tone  & red led light 
+// EV_WARNING2 = Event that enables the alarm's second tone  & red led light
 
 
 //----------------------------------------------
@@ -305,9 +303,9 @@ void warning_()
   tone(PIN_BUZZER, 1915, 200);
 }
 // 2nd tone alarm & put led off
-void warning_2() 
+void warning2_() 
 {
-  DebugPrint("Inside warning_2 function");
+  DebugPrint("Inside warning2_ function");
   last_state = current_state;
   current_state = ST_WARNING;
   // turn on the light
@@ -387,14 +385,14 @@ void getNewEvent()
         flag = true;
         prev_time = millis();
         prev_time2 = millis();
-        new_event = EV_WARNING_ENABLE_ALARM_AND_LIGHT; // fire first event..
+        new_event = EV_WARNING_1; // fire first event..
         flagAlarmLaunched = true;
         return;
       }   
       current_time2 = millis();
       if (current_time2 - prev_time2 > TIMEOUT_WARNING && flagAlarmLaunched) //after 1500 ms...
       {
-        new_event = EV_WARNING_SECTONE_ALARM_AND_TURN_OFF_LIGHT;
+        new_event = EV_WARNING_2;
         flagAlarmLaunched = false;
         return;
       }
