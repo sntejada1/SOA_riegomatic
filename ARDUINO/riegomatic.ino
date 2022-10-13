@@ -120,6 +120,8 @@ unsigned long lastCurrentTimeDistance;
 unsigned long current_time_water_pump;
 unsigned long past_time_water_pump;
 int state_water_pump;
+bool state_water_pump2;
+
 
 bool flagAlarmLaunched = false;
 int current_time;
@@ -158,6 +160,8 @@ void do_init()
 
     //BOMBA AGUA 
     pinMode(PIN_RELE, OUTPUT);
+    state_water_pump2 = false;
+
     past_time_water_pump=millis();
     state_water_pump=0;
 
@@ -180,9 +184,9 @@ void turn_on_green_led()
     digitalWrite(PIN_GREEN_LED, HIGH);
 }
 
-void water_pump_action(int state)
+void water_pump_action(bool state)
 {
-    if(state == 1){
+    if(state){
         digitalWrite(PIN_RELE, HIGH);
       //  DebugPrintNovedad("Regando");
    
@@ -324,15 +328,25 @@ void status_check_()
 
 void watering_()
 {
-    last_state = current_state;
-    current_state = ST_WATERING;
-    current_time_water_pump = millis();
-    if( current_time_water_pump - past_time_water_pump > 2000 ) // solo voy a regar por 2 segundos
+    // state_water_pump2 = true;
+    if(state_water_pump2 == true)
     {
-        past_time_water_pump = current_time_water_pump;
-        state_water_pump = !state_water_pump;
-        water_pump_action(state_water_pump); // cuando apaga la bomba pasa a satus check
+      last_state = current_state;
+      current_state = ST_WATERING;
+      water_pump_action(state_water_pump2);
+
+    } else 
+    {
+      state_water_pump = !state_water_pump;
+      water_pump_action(state_water_pump2); // cuando apaga la bomba pasa a satus check
     }
+    // current_time_water_pump = millis();
+    // if( current_time_water_pump - past_time_water_pump > 2000 ) // solo voy a regar por 2 segundos
+    // {
+    //     past_time_water_pump = current_time_water_pump;
+    //     state_water_pump = !state_water_pump;
+    //     water_pump_action(state_water_pump); // cuando apaga la bomba pasa a satus check
+    // }
 }
 
 void error_()
@@ -370,6 +384,21 @@ void getNewEvent()
         new_event = EV_BUTTON;
         return;
     }
+    //chekeo si esta regando
+    if(state_water_pump2 == true) {
+      current_time_water_pump = millis();
+      if( current_time_water_pump - past_time_water_pump > 2000 ) // solo voy a regar por 2 segundos
+      {
+          past_time_water_pump = current_time_water_pump;
+          state_water_pump2 = false;
+          // state_water_pump = !state_water_pump;
+          // water_pump_action(state_water_pump); // cuando apaga la bomba pasa a satus check
+      }
+    } else {
+      return;
+    }
+  
+
     // ACA CHEQUEAR TIMEOUT
     if (check_water() == R_INTERRUPTION)
     {
@@ -399,9 +428,12 @@ void getNewEvent()
     }
     else if (check_humidity() == R_INTERRUPTION)
     {
-      new_event = EV_NEED_WATER;
+      // new_event = EV_NEED_WATER;
+      new_event = ST_WATERING;
+      state_water_pump2 = true;
       return;
     }
+
 
     /*si no se genero ningun evento nuevo*/
     new_event = EV_CONTROL;
