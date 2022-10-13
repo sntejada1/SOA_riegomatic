@@ -329,6 +329,8 @@ void status_check_()
 void watering_()
 {
     // state_water_pump2 = true;
+    DebugPrint("----------------- EL EVENTO O ESTADO FUERA DE RANGO ESPERADO ---------------------");
+
     if(state_water_pump2 == true)
     {
       last_state = current_state;
