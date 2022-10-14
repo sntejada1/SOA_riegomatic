@@ -131,6 +131,7 @@ int prev_time2;
 bool flag = true;
 bool flagDistance = true;
 bool flagDistance2 = true;
+bool checkDistance = false;
 int timeDistance = 0;
 
 //-----------------------------------------------
@@ -225,12 +226,14 @@ long read_sensor_distance()
   if(timeDistance == TIME_TRIGGER_LOW)
   {
     digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,LOW); 
+    checkDistance=true;
     flagDistance=true;
     flagDistance2=true;
     timeDistance=0;
  	return pulseIn(PIN_DISTANCE_SENSOR_ECHO,HIGH);
   }
 }
+
 //Checks if the button was pressed to turn on or off the system..
 bool check_button()
 {	
@@ -256,15 +259,20 @@ bool check_button()
 int check_water()
 {
   distance = read_sensor_distance()/58;
-  
-  //DebugPrintMetric("Distancia sin agua en tanque",distance);
-  if(distance < DISTANCE_MIN){
-    return R_OK;
+  if(checkDistance == true)
+  {
+    DebugPrintMetric("Distancia",distance);
+    if(distance < DISTANCE_MIN){
+      checkDistance = false;
+      return R_OK;
+    }
+    else { //distance to water too long..  
+      checkDistance = false;
+      return R_INTERRUPTION;
+    }	
   }
-  else { //distance to water too long..    
-    return R_INTERRUPTION;
-  }	
 }
+
 int check_humidity()
 {
 	read_sensor_humidity();
