@@ -121,6 +121,7 @@ unsigned long current_time_water_pump;
 unsigned long past_time_water_pump;
 int state_water_pump;
 bool state_water_pump2;
+bool regando;
 
 
 bool flagAlarmLaunched = false;
@@ -161,8 +162,9 @@ void do_init()
     //BOMBA AGUA 
     pinMode(PIN_RELE, OUTPUT);
     state_water_pump2 = false;
+    regando = false;
 
-    past_time_water_pump=millis();
+    // past_time_water_pump=millis();
     state_water_pump=0;
 
     /* INTIALIZE FIRST EVENT*/
@@ -192,8 +194,8 @@ void water_pump_action(bool state)
    
     } else {
         digitalWrite(PIN_RELE, LOW);
-        last_state = current_state;
-        current_state = ST_STATUS_CHECK;
+        // last_state = current_state;
+        // current_state = ST_STATUS_CHECK;
        // DebugPrintNovedad("Se termino de regar");
     }
 }
@@ -237,6 +239,8 @@ long read_sensor_distance()
 //Checks if the button was pressed to turn on or off the system..
 bool check_button()
 {	
+
+  
 	bool there_was_system_changed = false;
     /*Sistema se mantiene prendido hasta volver a apretar*/
     sensors[SENSOR_BUTTON].current_value = digitalRead(PIN_BUTTON); //read button value
@@ -253,6 +257,7 @@ bool check_button()
         }
     }
     sensors[SENSOR_BUTTON].previous_value = sensors[SENSOR_BUTTON].current_value;
+    DebugPrint(there_was_system_changed);
     return there_was_system_changed;
 }
 
@@ -328,19 +333,27 @@ void status_check_()
 
 void watering_()
 {
-    // state_water_pump2 = true;
-    DebugPrint("----------------- EL EVENTO O ESTADO FUERA DE RANGO ESPERADO ---------------------");
-
+  DebugPrint("----------------- ejecutando watering ---------------------");
+  if(!regando){
+    state_water_pump2 = true;
+    regando = !regando;
+  }
     if(state_water_pump2 == true)
     {
       last_state = current_state;
       current_state = ST_WATERING;
       water_pump_action(state_water_pump2);
+      DebugPrint("----------------- Regando ---------------------");
 
     } else 
     {
-      state_water_pump = !state_water_pump;
+      // state_water_pump = !state_water_pump;
       water_pump_action(state_water_pump2); // cuando apaga la bomba pasa a satus check
+      last_state = current_state;
+      current_state = ST_STATUS_CHECK;
+      regando = !regando;
+
+      DebugPrint("----------------- termino regado ---------------------");
     }
     // current_time_water_pump = millis();
     // if( current_time_water_pump - past_time_water_pump > 2000 ) // solo voy a regar por 2 segundos
@@ -386,19 +399,22 @@ void getNewEvent()
         new_event = EV_BUTTON;
         return;
     }
-    //chekeo si esta regando
+    // //chekeo si esta regando
     if(state_water_pump2 == true) {
+      DebugPrint("----------------- comienzo temporizador ---------------------");
       current_time_water_pump = millis();
       if( current_time_water_pump - past_time_water_pump > 2000 ) // solo voy a regar por 2 segundos
       {
           past_time_water_pump = current_time_water_pump;
           state_water_pump2 = false;
+          new_event = EV_NEED_WATER;
+          return;
           // state_water_pump = !state_water_pump;
           // water_pump_action(state_water_pump); // cuando apaga la bomba pasa a satus check
-      }
-    } else {
+      } else {
       return;
-    }
+      }
+    } 
   
 
     // ACA CHEQUEAR TIMEOUT
@@ -407,6 +423,7 @@ void getNewEvent()
       if(flag)
       {
         prev_time = millis();
+        DebugPrint("----------------- comienzo temporizador flaaag ---------------------");
         flag = false;
       }
 
@@ -430,9 +447,14 @@ void getNewEvent()
     }
     else if (check_humidity() == R_INTERRUPTION)
     {
-      // new_event = EV_NEED_WATER;
-      new_event = ST_WATERING;
-      state_water_pump2 = true;
+      
+      new_event = EV_NEED_WATER;
+      //new_event = ST_WATERING;
+      if(!regando) 
+      {
+        past_time_water_pump = millis();
+        DebugPrint("----------------- comineza temporizador prev ---------------------");
+      }
       return;
     }
 
