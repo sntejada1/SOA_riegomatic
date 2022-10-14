@@ -230,7 +230,6 @@ long read_sensor_distance()
     timeDistance=0;
  	return pulseIn(PIN_DISTANCE_SENSOR_ECHO,HIGH);
   }
-  else return 0;
 }
 //Checks if the button was pressed to turn on or off the system..
 bool check_button()
@@ -387,11 +386,11 @@ void getNewEvent()
       
       if(flagDistance2 == true)
       {
-        lastCurrentTimeDistance2=millis();
+        lastCurrentTimeDistance2 = millis();
       	flagDistance2=false;
       }
       
-  	  currentTimeDistance2=millis();
+  	  currentTimeDistance2 = millis();
       if( (currentTimeDistance2-lastCurrentTimeDistance2) >= (TIME_TRIGGER_LOW))
       {
       	timeDistance = TIME_TRIGGER_LOW;
@@ -471,5 +470,4 @@ void loop()
     state_machine();
 }
 
-//FIN
-
+//FIN 
