@@ -66,7 +66,8 @@
 #define HUMIDITY_LOW 200
 #define HUMIDITY_HIGH 800
 #define DISTANCE_MIN 128
-#define TIEMPO_MAX_MILIS 5
+#define TIME_TRIGGER_HIGH 5
+#define TIME_TRIGGER_LOW 10
 
 
 #define TIME_MAX_MILLIS 1200
@@ -118,6 +119,8 @@ long humidity;
 long distance;
 unsigned long currentTimeDistance;
 unsigned long lastCurrentTimeDistance;
+unsigned long currentTimeDistance2;
+unsigned long lastCurrentTimeDistance2;
 unsigned long current_time_water_pump;
 unsigned long past_time_water_pump;
 bool state_water_pump;
@@ -130,6 +133,10 @@ int current_time2;
 int prev_time;
 int prev_time2;
 bool flag = true;
+bool flagDistance = true;
+bool flagDistance2 = true;
+bool checkDistance = false;
+int timeDistance = 0;
 
 //-----------------------------------------------
 //----------------- INITIALIZE ------------------
@@ -207,27 +214,25 @@ int read_sensor_humidity()
 
 long read_sensor_distance()
 {
-    lastCurrentTimeDistance = 0;
-    //Limpio el trigger
-    digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,LOW);
-    currentTimeDistance=millis();
-    //Dejo pasar 5 milisegundos
-    if( (currentTimeDistance-lastCurrentTimeDistance) >= (TIEMPO_MAX_MILIS))
-    {
-      //Pongo el trigger en HIGH
-      digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,HIGH);
-      lastCurrentTimeDistance = currentTimeDistance;
-      currentTimeDistance=0;
-      //Dejo pasar 10 milisegundos
-      if( (currentTimeDistance-lastCurrentTimeDistance) >= (TIEMPO_MAX_MILIS*2))
-      {
-          //Apago el trigger
-          digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,LOW); 
-          //Leo la señal echo y retorno el tiempo del sonido
-          return pulseIn(PIN_DISTANCE_SENSOR_ECHO,HIGH);
-      } 
-    } 
+  if(timeDistance == 0)
+  {
+  	digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,LOW);
+  }
+  if(timeDistance == TIME_TRIGGER_HIGH)
+  {
+  	digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,HIGH);
+  }
+  if(timeDistance == TIME_TRIGGER_LOW)
+  {
+    digitalWrite(PIN_DISTANCE_SENSOR_TRIGGER,LOW); 
+    checkDistance=true;
+    flagDistance=true;
+    flagDistance2=true;
+    timeDistance=0;
+ 	return pulseIn(PIN_DISTANCE_SENSOR_ECHO,HIGH);
+  }
 }
+
 //Checks if the button was pressed to turn on or off the system..
 bool check_button()
 {	
@@ -256,15 +261,20 @@ bool check_button()
 int check_water()
 {
   distance = read_sensor_distance()/58;
-	//DebugPrintMetric("Distancia sin agua en tanque",distance);
-  if(distance < DISTANCE_MIN){
-    return R_OK;
+  if(checkDistance == true)
+  {
+    DebugPrintMetric("Distancia",distance);
+    if(distance < DISTANCE_MIN){
+      checkDistance = false;
+      return R_OK;
+    }
+    else { //distance to water too long..  
+      checkDistance = false;
+      return R_INTERRUPTION;
+    }	
   }
-  else { //distance to water too long..    
-    return R_INTERRUPTION;
-  }
-  	
 }
+
 int check_humidity()
 {
 	read_sensor_humidity();
@@ -379,6 +389,32 @@ void getNewEvent()
     {
         new_event = EV_BUTTON;
         return;
+    }
+	
+   //TIMER DISTANCE
+   if(flagDistance == true)
+    {
+      lastCurrentTimeDistance = millis();
+      flagDistance = false;
+    }
+    
+    currentTimeDistance=millis();
+    //Dejo pasar 5 milisegundos
+    if( (currentTimeDistance-lastCurrentTimeDistance) >= (TIME_TRIGGER_HIGH))
+    {
+      timeDistance = TIME_TRIGGER_HIGH;
+      
+      if(flagDistance2 == true)
+      {
+        lastCurrentTimeDistance2 = millis();
+      	flagDistance2=false;
+      }
+      
+  	  currentTimeDistance2 = millis();
+      if( (currentTimeDistance2-lastCurrentTimeDistance2) >= (TIME_TRIGGER_LOW))
+      {
+      	timeDistance = TIME_TRIGGER_LOW;
+      } 
     }
    
     // ACA CHEQUEAR TIMEOUT
