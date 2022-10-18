@@ -56,6 +56,14 @@
 #define SENSOR_DISTANCE_ECHO 2
 #define SENSOR_HUMIDITY 3
 #define ACT_RIEGO 10
+#define CONVERTER_CM 58
+#define BAUD_RATE 9600
+#define TONE1 1915
+#define TONE2 1432
+#define TONE_DURATION 200
+#define ACTIVE 1 
+#define INACTIVE 0
+
 
 /*RESPUESTAS*/
 #define R_OK 1
@@ -105,7 +113,7 @@ transition state_table[MAX_STATES][MAX_EVENTS] =
 {
   {status_check_ , off_		       , off_         , off_        , off_         , error_      , off_      } , // state ST_OFF
   {off_          , status_check_ , warning_     , warning2_   , watering_    , warning_    , error_    } , // state ST_STATUS_CHECK
-  {off_          , status_check_ , watering_     , watering_  , watering_    , warning_    , error_    } , // state ST_WATERING
+  {off_          , status_check_ , watering_    , watering_  , watering_    , warning_    , error_    } , // state ST_WATERING
   {off_          , status_check_ , warning_     , warning2_   , warning_     , warning_    , error_    }   // state ST_WARNING
   //EV_BUTTON    , EV_CONTROL    , EV_WARNING_1 , EV_WARNING_2 , EV_NEED_WATER, EV_TIMEOUT  , EV_UNKNOW
 };
@@ -142,7 +150,7 @@ int timeDistance = 0;
 //----------------- INITIALIZE ------------------
 void do_init()
 {
-    Serial.begin(9600); // Enable serial port.
+    Serial.begin(BAUD_RATE); // Enable serial port.
     /*LEDS*/
     pinMode(PIN_GREEN_LED, OUTPUT);
     pinMode(PIN_RED_LED, OUTPUT);
@@ -153,12 +161,12 @@ void do_init()
     /*BUTTON*/
     pinMode(PIN_BUTTON, INPUT);
     sensors[SENSOR_BUTTON].pin = PIN_BUTTON;
-    sensors[SENSOR_BUTTON].state = 0; // inicia sin presionar
+    sensors[SENSOR_BUTTON].state = INACTIVE; // inicia sin presionar
 
     /*HUMIDITY SENSOR*/
     pinMode(PIN_HUMIDITY_SENSOR, INPUT);
     sensors[SENSOR_HUMIDITY].pin = PIN_HUMIDITY_SENSOR;
-    sensors[SENSOR_BUTTON].state = 0; // inicia sin presionar
+    sensors[SENSOR_BUTTON].state = INACTIVE; // inicia sin presionar
 
     /*DISTANCE SENSOR*/
     pinMode(PIN_DISTANCE_SENSOR_TRIGGER, OUTPUT);
@@ -246,7 +254,7 @@ bool check_button()
         sensors[SENSOR_BUTTON].state = 1 - sensors[SENSOR_BUTTON].state;
         there_was_system_changed = true;
 
-        if (sensors[SENSOR_BUTTON].state == 1)
+        if (sensors[SENSOR_BUTTON].state == ACTIVE)
         {
             DebugPrintNovedad("Sistema encendido");
         }else{
@@ -254,16 +262,15 @@ bool check_button()
         }
     }
     sensors[SENSOR_BUTTON].previous_value = sensors[SENSOR_BUTTON].current_value;
-    DebugPrint(there_was_system_changed);
     return there_was_system_changed;
 }
 
 int check_water()
 {
-  distance = read_sensor_distance()/58;
+  distance = read_sensor_distance()/CONVERTER_CM;
   if(checkDistance == true)
   {
-    DebugPrintMetric("Distancia",distance);
+    //DebugPrintMetric("Distancia",distance);
     if(distance < DISTANCE_MIN){
       checkDistance = false;
       return R_OK;
@@ -281,7 +288,7 @@ int check_humidity()
 
 	if (sensors[SENSOR_HUMIDITY].current_value <= HUMIDITY_LOW)
 	{
-	//	DebugPrintNovedad("Hay poca humedad. Se debe regar.");
+		// DebugPrintNovedad("Hay poca humedad. Se debe regar.");
 		return R_INTERRUPTION;
 	}
 	return R_OK;
@@ -305,24 +312,22 @@ void off_()
 // launch the alarm & start the twinkle red led
 void warning_()
 {
-  DebugPrint("Inside warning_ function");
   last_state = current_state;
   current_state = ST_WARNING;
 
   // turn on the light
   analogWrite(PIN_RED_LED, HIGH_LEVEL_BRIGHTNESS); // Analog write ( PWM ) in the PIN_RED_LED
-  tone(PIN_BUZZER, 1915, 200);
+  tone(PIN_BUZZER, TONE1, TONE_DURATION);
 }
 // 2nd tone alarm & put led off
 void warning2_() 
 {
-  DebugPrint("Inside warning2_ function");
   last_state = current_state;
   current_state = ST_WARNING;
   // turn on the light
   analogWrite(PIN_RED_LED, HIGH_LEVEL_BRIGHTNESS); // Analog write ( PWM ) in the PIN_RED_LED
   // turn on the alarm's 2nd tone
-  tone(PIN_BUZZER, 1432, 200);
+  tone(PIN_BUZZER, TONE2, TONE_DURATION);
 }
 
 void status_check_()
@@ -357,27 +362,7 @@ void watering_()
 
 void error_()
 {
-	// turn_on_red_led();
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    // Ver si queremos hacer algo aca.. la funcion anterior no corre mas..
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    //
-    DebugPrint("<<<<<<<<<<<<<<<<< OCCURIO UN ERROR >>>>>>>>>>>>>>>>>>>>>");
+  DebugPrint("<<<<<<<<<<<<<<<<< OCCURIO UN ERROR >>>>>>>>>>>>>>>>>>>>>");
 }
 //----------------------------------------------
 //----------- CHECK FOR NEW EVENTS -------------
@@ -423,7 +408,6 @@ void getNewEvent()
       if(flag)
       {
         prev_time = millis();
-        DebugPrint("----------------- comienzo temporizador flaaag ---------------------");
         flag = false;
       }
 
