@@ -113,7 +113,7 @@ transition state_table[MAX_STATES][MAX_EVENTS] =
 {
   {status_check_ , off_		       , off_         , off_        , off_         , error_      , off_      } , // state ST_OFF
   {off_          , status_check_ , warning_     , warning2_   , watering_    , warning_    , error_    } , // state ST_STATUS_CHECK
-  {off_          , status_check_ , watering_    , watering_  , watering_    , warning_    , error_    } , // state ST_WATERING
+  {off_          , status_check_ , watering_    , watering_   , watering_    , warning_    , error_    } , // state ST_WATERING
   {off_          , status_check_ , warning_     , warning2_   , warning_     , warning_    , error_    }   // state ST_WARNING
   //EV_BUTTON    , EV_CONTROL    , EV_WARNING_1 , EV_WARNING_2 , EV_NEED_WATER, EV_TIMEOUT  , EV_UNKNOW
 };
