@@ -340,8 +340,8 @@ void report_humidity_bth()
     //DebugPrint(sensors[SENSOR_HUMIDITY].current_value);
    // DebugPrint("porcentaje");
     //DebugPrint(cstr);
- //   miBT.write(cstr);
- //   miBT.write("\n");
+    miBT.write(cstr);
+    miBT.write("\n");
     return;
 }
 
