@@ -1,4 +1,5 @@
 // C++ code
+#include <SoftwareSerial.h>
 
 #define SERIAL_DEBUG_ENABLED 1
 
@@ -63,7 +64,8 @@
 #define TONE_DURATION 200
 #define ACTIVE 1 
 #define INACTIVE 0
-
+#define PORCENTAJE1024 10.24
+#define CIENPORC 100
 
 /*RESPUESTAS*/
 #define R_OK 1
@@ -71,21 +73,27 @@
 #define R_ERROR 9
 
 /*UMBRALES*/
-#define HUMIDITY_LOW 200
-#define HUMIDITY_HIGH 800
-#define DISTANCE_MIN 128
+#define HUMIDITY_LOW 30
+#define HUMIDITY_HIGH 80
+#define DISTANCE_MIN 20
 #define TIME_TRIGGER_HIGH 5
 #define TIME_TRIGGER_LOW 10
 
-
+/*TIMERS*/
 #define TIME_MAX_MILLIS 1200
 #define TIMEOUT_WARNING 500
 #define HIGH_LEVEL_BRIGHTNESS 255
 #define LOW_LEVEL_BRIGHTNESS 0
-#define TIME_WATERING 2000
+#define TIME_WATERING 8000
+#define TIME_REPORT 2000
 
+/*MAQUINA DE ESTADOS*/
 #define MAX_STATES 4
-#define MAX_EVENTS 7
+#define MAX_EVENTS 9
+
+/*Señales Bluetooh*/
+#define SENAL_ONOF 1 
+#define SENAL_WATERING 2 
 
 
 //----------------------------------------------
@@ -105,21 +113,11 @@ stSensor sensors[MAX_CANT_SENSORES];
 enum states     {    ST_OFF,    ST_STATUS_CHECK,    ST_WATERING,    ST_WARNING} current_state, last_state;
 String states_s[] = {"OFF",     "STATUS_CHECK",     "WATERING",     "WARNING"};
 
-enum events         {    EV_BUTTON,          EV_CONTROL,            EV_WARNING_1,                         EV_WARNING_2 ,    EV_NEED_WATER,    EV_TIMEOUT,    EV_UNKNOW } new_event, last_event;
-String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING",   "WARNING_LOW_WATER_LEVEL",    "WARNING_LOW_WATER_LEVEL_2" ,"NEED_WATER",          "TIMEOUT",      "UNKNOW"};
+enum events         {    EV_BUTTON,          EV_CONTROL,            EV_WARNING_1,                         EV_WARNING_2 ,    EV_NEED_WATER,    EV_TIMEOUT,    EV_UNKNOW , EV_BT_ONOF, EV_BT_WATER} new_event, last_event;
+String events_s[] = {"BUTTON_PRESSED", "CONTINUE_MONITORING",   "WARNING_LOW_WATER_LEVEL",    "WARNING_LOW_WATER_LEVEL_2" ,"NEED_WATER",       "TIMEOUT",   "UNKNOW",   "EV_BT_ONOF", "EV_BT_WATER"};
 
-typedef void (*transition)();
-transition state_table[MAX_STATES][MAX_EVENTS] =
-{
-  {status_check_ , off_		       , off_         , off_        , off_         , error_      , off_      } , // state ST_OFF
-  {off_          , status_check_ , warning_     , warning2_   , watering_    , warning_    , error_    } , // state ST_STATUS_CHECK
-  {off_          , status_check_ , watering_    , watering_  , watering_    , warning_    , error_    } , // state ST_WATERING
-  {off_          , status_check_ , warning_     , warning2_   , warning_     , warning_    , error_    }   // state ST_WARNING
-  //EV_BUTTON    , EV_CONTROL    , EV_WARNING_1 , EV_WARNING_2 , EV_NEED_WATER, EV_TIMEOUT  , EV_UNKNOW
-};
-// EV_WARNING1 = Event that enables the alarm's first tone  & red led light 
-// EV_WARNING2 = Event that enables the alarm's second tone  & red led light
 
+SoftwareSerial miBT(5, 6); // pin 5 Rx BT y Tx Arduino, Pin 6 Rx BT Tx arduino
 
 //----------------------------------------------
 //-------------- GLOBAL VARIABLES --------------
@@ -145,12 +143,15 @@ bool flagDistance = true;
 bool flagDistance2 = true;
 bool checkDistance = false;
 int timeDistance = 0;
+int currenttime_report = 0;
+int prevtime_report = 0;
 
 //-----------------------------------------------
 //----------------- INITIALIZE ------------------
 void do_init()
 {
     Serial.begin(BAUD_RATE); // Enable serial port.
+    miBT.begin(BAUD_RATE);
     /*LEDS*/
     pinMode(PIN_GREEN_LED, OUTPUT);
     pinMode(PIN_RED_LED, OUTPUT);
@@ -184,6 +185,8 @@ void do_init()
     current_state = ST_OFF;
     last_event = EV_UNKNOW;
     new_event = EV_UNKNOW;
+
+    prevtime_report = millis();
 }
 
 //----------------------------------------------
@@ -265,6 +268,33 @@ bool check_button()
     return there_was_system_changed;
 }
 
+int check_bth()
+{
+     fflush(stdin);
+     
+     if (miBT.available())
+     { // si hay informacion disponible desde modulobluetooth
+        char rta= miBT.read();
+        int valor = atoi(&rta);   
+      /*  DebugPrint("respuesta");
+        DebugPrint(rta);
+        DebugPrint("valor entero");
+        DebugPrint(valor);*/
+        if( valor == SENAL_ONOF )
+        {
+          DebugPrint("Señal 1 SENAL_ONOF");
+          return SENAL_ONOF;
+        }
+        if( valor == SENAL_WATERING)
+        {
+          DebugPrint("Señal 2 SENAL_WATERING");
+          return SENAL_WATERING;
+        }
+     }
+     return 0;
+}
+
+
 int check_water()
 {
   distance = read_sensor_distance()/CONVERTER_CM;
@@ -286,14 +316,33 @@ int check_humidity()
 {
 	read_sensor_humidity();
 
-	if (sensors[SENSOR_HUMIDITY].current_value <= HUMIDITY_LOW)
-	{
-		// DebugPrintNovedad("Hay poca humedad. Se debe regar.");
-		return R_INTERRUPTION;
-	}
-	return R_OK;
+//se calcula la humedad en porcentaje
+  if ( -((sensors[SENSOR_HUMIDITY].current_value / PORCENTAJE1024 ) - CIENPORC ) <= HUMIDITY_LOW) 
+  {
+    // DebugPrintNovedad("Hay poca humedad. Se debe regar.");
+    return R_INTERRUPTION;
+  }
+  return R_OK;
 
-	
+  
+}
+
+void report_humidity_bth()
+{
+    //envio valor de humedad a Bluetooh
+    char cstr[5];
+    int valor = sensors[SENSOR_HUMIDITY].current_value;
+    valor = -((valor / PORCENTAJE1024 ) - CIENPORC );
+    String str = String(valor);
+    str.toCharArray(cstr,5);
+   //  DebugPrint("---------------");
+   // DebugPrint("valor sensor");
+    //DebugPrint(sensors[SENSOR_HUMIDITY].current_value);
+   // DebugPrint("porcentaje");
+    //DebugPrint(cstr);
+ //   miBT.write(cstr);
+ //   miBT.write("\n");
+    return;
 }
 
 //----------------------------------------------
@@ -364,6 +413,18 @@ void error_()
 {
   DebugPrint("<<<<<<<<<<<<<<<<< OCCURIO UN ERROR >>>>>>>>>>>>>>>>>>>>>");
 }
+
+typedef void (*transition)();
+transition state_table[MAX_STATES][MAX_EVENTS] =
+{
+  {status_check_ , off_           , off_         , off_        , off_         , error_      , off_     , status_check_ , off_        } , // state ST_OFF
+  {off_          , status_check_ , warning_     , warning2_   , watering_    , warning_    , error_    , off_          , watering_   } , // state ST_STATUS_CHECK
+  {off_          , status_check_ , watering_     , watering_  , watering_    , warning_    , error_    , off_          , watering_   } , // state ST_WATERING
+  {off_          , status_check_ , warning_     , warning2_   , warning_     , warning_    , error_    , off_          , warning_    }   // state ST_WARNING
+  //EV_BUTTON    , EV_CONTROL    , EV_WARNING_1 , EV_WARNING_2 , EV_NEED_WATER, EV_TIMEOUT  ,EV_UNKNOW , EV_BT_ONOF   , EV_BT_WATER
+};
+// EV_WARNING1 = Event that enables the alarm's first tone  & red led light 
+// EV_WARNING2 = Event that enables the alarm's second tone  & red led light
 //----------------------------------------------
 //----------- CHECK FOR NEW EVENTS -------------
 
@@ -375,7 +436,32 @@ void getNewEvent()
         new_event = EV_BUTTON;
         return;
     }
-	
+    // ESCUCHAMOS SEÑAL DE BLUETOOTH..
+    int senal = check_bth();
+    if ( senal != 0) 
+    {
+        if(senal == SENAL_ONOF) 
+        {
+          new_event = EV_BT_ONOF;
+          return;
+        }
+        if(senal == SENAL_WATERING)
+        {
+          new_event = EV_BT_WATER;
+          return;
+        }
+    }
+
+    //timer para reportar informacion
+    currenttime_report = millis();
+    if( (currenttime_report - prevtime_report) >= TIME_REPORT)
+    {
+      report_humidity_bth();
+      prevtime_report = currenttime_report;
+      
+    }
+    
+
    //TIMER DISTANCE
    if(flagDistance == true)
     {
@@ -387,6 +473,7 @@ void getNewEvent()
     //Dejo pasar 5 milisegundos
     if( (currentTimeDistance-lastCurrentTimeDistance) >= (TIME_TRIGGER_HIGH))
     {
+      //evaluo distancia hasta el agua de la reserva
       timeDistance = TIME_TRIGGER_HIGH;
       
       if(flagDistance2 == true)
@@ -402,7 +489,6 @@ void getNewEvent()
       } 
     }
    
-    // ACA CHEQUEAR TIMEOUT
     if (check_water() == R_INTERRUPTION)
     {
       if(flag)
