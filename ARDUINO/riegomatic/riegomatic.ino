@@ -365,6 +365,7 @@ void warning_()
 void warning2_() 
 {
   last_state = current_state;
+   DebugPrint("current state 2 " + current_state );
   current_state = ST_WARNING;
   // turn on the light
   analogWrite(PIN_RED_LED, HIGH_LEVEL_BRIGHTNESS); // Analog write ( PWM ) in the PIN_RED_LED
@@ -383,9 +384,9 @@ void status_check_()
 void watering_()
 {
 
-  if(!watering_flag){
+  if(!watering_flag){ // si no estoy regando
     state_water_pump = true;
-    watering_flag = !watering_flag;
+    watering_flag = !watering_flag; // para a true
   }
     if(state_water_pump == true)
     {
@@ -398,7 +399,7 @@ void watering_()
       water_pump_action(state_water_pump); // cuando apaga la bomba pasa a satus check
       last_state = current_state;
       current_state = ST_STATUS_CHECK;
-      watering_flag = !watering_flag;
+      watering_flag = !watering_flag; // pasa a false
     }
 }
 
@@ -509,6 +510,7 @@ void getNewEvent()
         if(senal == SENAL_WATERING)
         {
           new_event = EV_BT_WATER;
+          past_time_water_pump = millis();
           
           return;
         }
@@ -520,7 +522,7 @@ void getNewEvent()
       
       new_event = EV_NEED_WATER;
       
-      if(!watering_flag) 
+      if(!watering_flag) // si no estoy regando
       {
         past_time_water_pump = millis();
         return;
@@ -545,7 +547,9 @@ void getNewEvent()
 
 
     /*si no se genero ningun evento nuevo*/
+    
     new_event = EV_CONTROL;
+
 }
 
 //-----------------------------------------------
