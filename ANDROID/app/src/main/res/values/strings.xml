@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Riegomatic</string>
+    <string name="welcome">Bienvenido</string>
+    <string name="login">Ingresar</string>
+    <string name="status">Estado</string>
+    <string name="humidity">Humedad</string>
+    <string name="water">% agua</string>
+    <string name="watering">Regar</string>
+    <string name="power">Encendido</string>
+    <string name="main">Welcome View</string>
+    <string name="home">Riegomatic View</string>
+    <string name="back">Regresar</string>
+</resources>
