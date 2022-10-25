@@ -84,7 +84,7 @@
 #define TIMEOUT_WARNING 500
 #define HIGH_LEVEL_BRIGHTNESS 255
 #define LOW_LEVEL_BRIGHTNESS 0
-#define TIME_WATERING 8000
+#define TIME_WATERING 2000
 #define TIME_REPORT 2000
 
 /*MAQUINA DE ESTADOS*/
@@ -145,6 +145,7 @@ bool checkDistance = false;
 int timeDistance = 0;
 int currenttime_report = 0;
 int prevtime_report = 0;
+int senal = 0;
 
 //-----------------------------------------------
 //----------------- INITIALIZE ------------------
@@ -430,6 +431,17 @@ void getNewEvent()
     return;
   }
 
+  // ESCUCHAMOS SENAL DE BLUETOOTH..
+  senal = check_bth();
+  if (senal != 0)
+  {
+    if (senal == SENAL_ONOF)
+    {
+      new_event = EV_BT_ONOF;
+      return;
+    }
+  }
+
   // timer para reportar informacion
   currenttime_report = millis();
   if ((currenttime_report - prevtime_report) >= TIME_REPORT)
@@ -465,7 +477,7 @@ void getNewEvent()
     }
   }
 
-  if (check_water() == R_INTERRUPTION)
+  if (check_water() == R_INTERRUPTION && state_water_pump != true)
   {
     if (flag)
     {
@@ -490,27 +502,7 @@ void getNewEvent()
       flagAlarmLaunched = false;
       return;
     }
-  }
-
-  // ESCUCHAMOS SENAL DE BLUETOOTH..
-  int senal = check_bth();
-  if (senal != 0)
-  {
-    if (senal == SENAL_ONOF)
-    {
-      new_event = EV_BT_ONOF;
-      return;
-    }
-    if (senal == SENAL_WATERING)
-    {
-      new_event = EV_BT_WATER;
-      past_time_water_pump = millis();
-
-      return;
-    }
-  }
-
-  if (check_humidity() == R_INTERRUPTION || state_water_pump == true)
+  } else if (check_humidity() == R_INTERRUPTION || state_water_pump == true)
   {
 
     new_event = EV_NEED_WATER;
@@ -535,6 +527,18 @@ void getNewEvent()
       {
         return;
       }
+    }
+  }
+
+  // ESCUCHAMOS SENAL DE BLUETOOTH..
+  if (senal != 0)
+  {
+    if (senal == SENAL_WATERING)
+    {
+      new_event = EV_BT_WATER;
+      past_time_water_pump = millis();
+
+      return;
     }
   }
 
