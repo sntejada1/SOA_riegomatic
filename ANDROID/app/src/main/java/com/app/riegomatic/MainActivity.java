@@ -18,14 +18,7 @@ public class MainActivity extends AppCompatActivity implements Contract.ViewMVP 
         setContentView(R.layout.activity_main);
 
         Button login = findViewById(R.id.login);
-        // login.setOnClickListener(new View.OnClickListener() {
-        //     @Override
-        //     public void onClick(View view) {
-        //         Intent intent = new Intent(view.getContext(), home.class);
-        //         startActivityForResult(intent, 0);
-        //     }
-        // });
-
+        
         login.setOnClickListener(btnListener);
 
 
@@ -45,7 +38,7 @@ public class MainActivity extends AppCompatActivity implements Contract.ViewMVP 
             switch (view.getId()) {
                 case R.id.login:
                     //se genera un Intent para poder lanzar la activity principal
-                    intent = new Intent(MainActivity.this, home.class);
+                    intent = new Intent(MainActivity.this, HomeActivity.class);
 
                     //Se le agrega al intent los parametros que se le quieren pasar a la activyt principal
                     //cuando se lanzado
