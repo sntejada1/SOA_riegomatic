@@ -325,16 +325,20 @@ int check_humidity()
   return R_OK;
 }
 
-void report_humidity_bth()
+void report_sensors_bth()
 {
-  // envio valor de humedad a Bluetooh
-  char cstr[5];
-  int valor = sensors[SENSOR_HUMIDITY].current_value;
-  valor = -((valor / PORCENTAJE1024) - CIENPORC);
-  String str = String(valor);
-  str.toCharArray(cstr, 5);
+
+  // enviar información se distancia y humedad.
+  char cstr[10];
+  int valorHumedad = sensors[SENSOR_HUMIDITY].current_value;
+  valorHumedad = -((valorHumedad / PORCENTAJE1024) - CIENPORC);
+  String strValorHumedad = String(valorHumedad);
+  String strValorDistancia = String(distance);
+  String str = String(' ');
+  str = "#" + strValorHumedad + "~" + strValorDistancia + "\n" ;
+  str.toCharArray(cstr, 10);
   miBT.write(cstr);
-  miBT.write("\n");
+  // miBT.write("\n");
   return;
 }
 
@@ -446,7 +450,7 @@ void getNewEvent()
   currenttime_report = millis();
   if ((currenttime_report - prevtime_report) >= TIME_REPORT)
   {
-    report_humidity_bth();
+    report_sensors_bth();
     prevtime_report = currenttime_report;
   }
 
