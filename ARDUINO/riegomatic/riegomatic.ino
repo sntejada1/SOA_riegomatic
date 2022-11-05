@@ -335,7 +335,7 @@ void report_sensors_bth()
   String strValorHumedad = String(valorHumedad);
   String strValorDistancia = String(distance);
   String str = String(' ');
-  str = "#" + strValorHumedad + "~" + strValorDistancia + "\n" ;
+  str = "#" + strValorHumedad + 'a' + strValorDistancia + "\n" ;
   str.toCharArray(cstr, 10);
   miBT.write(cstr);
   // miBT.write("\n");
