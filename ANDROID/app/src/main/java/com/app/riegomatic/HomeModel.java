@@ -76,7 +76,7 @@ public class HomeModel extends Thread implements Contract.ModelMVP{
             public void handleMessage(android.os.Message msg) {
                 if (msg.what == handlerState) {          //if message is what we want
                  readMessage = (String) msg.obj;
-                 Log.d(TAG, "...ESTADOOOOOOOOOOOOOOOOOOOOOO............................................................." + readMessage.toString());
+                 //Log.d(TAG, "...ESTADOOOOOOOOOOOOOOOOOOOOOO............................................................." + msg.toString());
                  int endOfLineIndex = readMessage.indexOf("a");
                     if (endOfLineIndex > 0 && readMessage.indexOf("k") != 0 ) {
 
