@@ -24,15 +24,24 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
         this.homeView.setHumedad(string);
     }
     @Override
+    public void actualizarEstado(String string) {
+        this.homeView.setEstado(string);
+    }
+    @Override
     public void actualizarDistancia(String string) {
         string = string.replaceAll("\\s+","");
-        int distancia = Integer.parseInt(string.toString());
-        // this.homeView.setWater(string.toString());
-        if(distancia < 20) {
-            this.homeView.setWater("CORRECTA");
-        } else {
-            this.homeView.setWater("BAJA");
+        try {
+            int distancia = Integer.parseInt(string.toString());
+            // this.homeView.setWater(string.toString());
+            if(distancia < 20) {
+                this.homeView.setWater("CORRECTA");
+            } else {
+                this.homeView.setWater("BAJA");
+            }
+        } catch (NumberFormatException e) {
+            return;
         }
+
     }
     
     @Override

@@ -72,11 +72,14 @@ public class HomeModel extends Thread implements Contract.ModelMVP{
      public HomeModel() {
 
          bluetoothIn = new Handler() {
+            @SuppressLint("SuspiciousIndentation")
             public void handleMessage(android.os.Message msg) {
                 if (msg.what == handlerState) {          //if message is what we want
-                 readMessage = (String) msg.obj;      
+                 readMessage = (String) msg.obj;
+                 Log.d(TAG, "...ESTADOOOOOOOOOOOOOOOOOOOOOO............................................................." + readMessage.toString());
                  int endOfLineIndex = readMessage.indexOf("a");
-                    if (endOfLineIndex > 0) {    
+                    if (endOfLineIndex > 0 && readMessage.indexOf("k") != 0 ) {
+
                         if (readMessage.charAt(0) != '#')       
                         {
                             String humedad = readMessage.substring(0, endOfLineIndex);             
@@ -84,6 +87,8 @@ public class HomeModel extends Thread implements Contract.ModelMVP{
                             presenter.actualizarHumedad(humedad);
                             presenter.actualizarDistancia(distancia);           
                         }
+                    } else if(readMessage.length() > 2){
+                        presenter.actualizarEstado(readMessage.substring(1));
                     }
                 }
             }

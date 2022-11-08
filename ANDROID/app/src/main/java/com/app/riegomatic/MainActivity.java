@@ -35,6 +35,9 @@ public class MainActivity extends AppCompatActivity implements Contract.ViewMVP 
     public void setWater(String string) {
         
     }
+    public void setEstado(String string) {
+
+    }
 
     private View.OnClickListener btnListener = new View.OnClickListener() {
         @SuppressLint("NonConstantResourceId")

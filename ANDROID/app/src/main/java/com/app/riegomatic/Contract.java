@@ -6,6 +6,7 @@ public interface Contract {
         void setString(String string);
         void setHumedad(String string);
         void setWater(String string);
+        void setEstado(String string);
     }
 
     interface ModelMVP{
@@ -14,6 +15,7 @@ public interface Contract {
             void actualizarCampos(String String);
             void actualizarHumedad(String String);
             void actualizarDistancia(String String);
+            void actualizarEstado(String String);
             
         }
         void sendMessage(Contract.ModelMVP.OnSendToPresenter presenter);

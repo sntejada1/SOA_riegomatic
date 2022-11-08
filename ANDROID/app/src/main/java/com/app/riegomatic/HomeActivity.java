@@ -192,6 +192,12 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
 
     }
 
+    @Override
+    public void setEstado(String string) {
+        textStatus.setText(string);
+
+    }
+
     private View.OnClickListener btnListener = new View.OnClickListener() {
         @SuppressLint("NonConstantResourceId")
         @Override
