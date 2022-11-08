@@ -15,23 +15,25 @@ import android.annotation.SuppressLint;
 import android.os.Handler;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+
 import java.util.UUID;
 
-import android.app.Activity;
+
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.Intent;
-import android.os.Handler;
-import android.util.Log;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.Button;
-import android.widget.SeekBar;
-import android.widget.TextView;
 import android.widget.Toast;
+
+//sensor
+
+
+import androidx.appcompat.app.AppCompatDelegate;
+
+
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 
 public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP {
 
@@ -46,6 +48,15 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     private StringBuilder recDataString = new StringBuilder();
     //private ConnectedThread mConnectedThread;
     private static final String TAG = "HomeActivity";
+
+    //sensor
+
+    public static final float dark_mode_sensibility_level = 0.25f;
+    private SensorManager sensorManager;
+    private Sensor lightSensor;
+    private SensorEventListener lightEventListener;
+    private float valueMax;
+
 
 
     // SPP UUID service - this should work for most devices
@@ -78,6 +89,43 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
 
         btAdapter = BluetoothAdapter.getDefaultAdapter();       // get Bluetooth adapter
         checkBTState();
+
+
+        //SensorLuminosities
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+
+        valueMax = lightSensor.getMaximumRange();
+
+        lightEventListener = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent sensorEvent) {
+                float value = sensorEvent.values[0];
+                float range = valueMax * dark_mode_sensibility_level;
+                //getSupportActionBar().setTitle("Luminosidad : " + value);
+
+                if (value < range)
+                    getDelegate().setLocalNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                else getDelegate().setLocalNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+            }
+
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int i) {
+
+            }
+        };
+
+        // Button back = findViewById(R.id.back);
+        // back.setOnClickListener(new View.OnClickListener() {
+        //     @Override
+        //     public void onClick(View view) {
+        //         Intent intent2 = new Intent(view.getContext(), MainActivity.class);
+        //         startActivityForResult(intent2,0);
+        //     }
+        // });
+
+
+
 
 
     }
@@ -133,6 +181,7 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
             }
         }
         presenter.onConectar(btSocket);
+        sensorManager.registerListener(lightEventListener, lightSensor, SensorManager.SENSOR_DELAY_FASTEST);
     }
 
     @Override
@@ -144,6 +193,8 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
         } catch (IOException e2) {
             //insert code to deal with this
         }
+
+        sensorManager.unregisterListener(lightEventListener);
     }
 
     //Checks that the Android device Bluetooth is available and prompts to be turned on if off
@@ -209,6 +260,11 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
                     break;
                 case R.id.power:
                     presenter.arduinoOnOf();
+                    break;
+                case R.id.back:
+
+                        Intent intent2 = new Intent(view.getContext(), MainActivity.class);
+                        startActivityForResult(intent2,0);
                     break;
                 default:
                     throw new IllegalStateException("Unexpexted value" + view.getId());
