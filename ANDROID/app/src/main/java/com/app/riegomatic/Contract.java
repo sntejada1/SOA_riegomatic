@@ -1,6 +1,10 @@
 package com.app.riegomatic;
 import android.bluetooth.BluetoothSocket;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
+
+import android.os.Handler;
+
 public interface Contract {
     interface ViewMVP{
         void setString(String string);
@@ -10,19 +14,19 @@ public interface Contract {
     }
 
     interface ModelMVP{
+
+
         interface OnSendToPresenter{
             void onFinished(String string);
-            void actualizarCampos(String String);
-            void actualizarHumedad(String String);
-            void actualizarDistancia(String String);
-            void actualizarEstado(String String);
             
         }
         void sendMessage(Contract.ModelMVP.OnSendToPresenter presenter);
         void recibirMensaje(int bytes, String readMessage);
         void conectar(BluetoothSocket btSocket);
-        void setPresenterModel(Presenter presenter);
+        void conectar();
+        void res(Context Contexto, Handler bluetoothIn);
         void escribirArduino(String senal);
+        void checkBTStatehome(Context contexto);
     }
 
     interface PresenterMVP{
@@ -30,8 +34,11 @@ public interface Contract {
         void onDestroy();
         void onRecibirMesaje(int bytes, String readMessage);
         void onConectar(BluetoothSocket btSocket);
-        void onSetPresenterModel();
+        void onConectar();
         void watering();
         void arduinoOnOf();
+        void checkBtStateHome();
+        void res();
+        void conectar();
     }
 }
