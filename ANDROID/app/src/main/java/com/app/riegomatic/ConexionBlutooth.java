@@ -38,6 +38,7 @@ public class ConexionBlutooth extends Thread {
     private InputStream mmInStream;
     private OutputStream mmOutStream;
     private Handler bluetoothIn;
+    private Context contexto2;
 
     // el ejemplo que mando profe (no funciono)
     String[] permissions = new String[]{
@@ -53,10 +54,11 @@ public class ConexionBlutooth extends Thread {
             Manifest.permission.BLUETOOTH_ADVERTISE};
 
 
-    public ConexionBlutooth(Handler bluetoothIn){
+    public ConexionBlutooth(Handler bluetoothIn, Context cotexto){
         btAdapter = BluetoothAdapter.getDefaultAdapter();
         btSocket = null;
         this.bluetoothIn = bluetoothIn;
+        this.contexto2 = cotexto;
 
     }
     public int crear(Context contexto) {
@@ -79,7 +81,7 @@ public class ConexionBlutooth extends Thread {
 
 
         public int res(Context cotexto) {
-            String address = "98:D3:61:F9:39:A5";
+        String address = "98:D3:61:F9:39:A5";
 
         BluetoothDevice device = btAdapter.getRemoteDevice(address);
 
@@ -103,7 +105,6 @@ public class ConexionBlutooth extends Thread {
             }
         }
         this.ConnectedThread(btSocket);
-        Log.d(TAG, "...START............................................................." );
         return 1;
     }
 
@@ -150,21 +151,25 @@ public class ConexionBlutooth extends Thread {
 
 
     public void run() {
-        this.write("x");
-        byte[] buffer = new byte[256];
-        int bytes;
-        int i = 0;
-        // Keep looping to listen for received messages
-        while (true) {
-            try {
-                Log.d(TAG, "...EJECUTANDO WHILEEEEEEEE............................................................." + i);
-                i++;
-                bytes = mmInStream.read(buffer);         //read bytes from input buffer
-                String readMessage2 = new String(buffer, 0, bytes);
-                // Send the obtained bytes to the UI Activity via handler
-                bluetoothIn.obtainMessage(0, bytes, -1, readMessage2).sendToTarget();
-            } catch (IOException e) {
-                break;
+        Log.d(TAG, "...RUUUUUNS.............................................................");
+        if (this.res(this.contexto2) == 1 ) {
+            Log.d(TAG, "...RUNNNNN DENTRO IF.............................................................");
+            this.write("x");
+            byte[] buffer = new byte[256];
+            int bytes;
+            int i = 0;
+            // Keep looping to listen for received messages
+            while (true) {
+                try {
+                    Log.d(TAG, "...EJECUTANDO WHILEEEEEEEE............................................................." + i);
+                    i++;
+                    bytes = mmInStream.read(buffer);         //read bytes from input buffer
+                    String readMessage2 = new String(buffer, 0, bytes);
+                    // Send the obtained bytes to the UI Activity via handler
+                    bluetoothIn.obtainMessage(0, bytes, -1, readMessage2).sendToTarget();
+                } catch (IOException e) {
+                    break;
+                }
             }
         }
     }
@@ -204,7 +209,9 @@ public class ConexionBlutooth extends Thread {
     public void pause() throws IOException {
         try
         {
-            btSocket.close();
+            if(btSocket != null){
+                btSocket.close();
+            }
         } catch (IOException e2) {
 
         }

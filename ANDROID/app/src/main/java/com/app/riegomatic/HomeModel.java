@@ -15,10 +15,10 @@ public class HomeModel implements Contract.ModelMVP {
 
     @SuppressLint("HandlerLeak")
 
-    public HomeModel(Handler bluetoothIn) {
+    public HomeModel(Handler bluetoothIn, Context contexto) {
 
         //nuevo
-        mConexionBluetooth = new ConexionBlutooth(bluetoothIn);
+        mConexionBluetooth = new ConexionBlutooth(bluetoothIn, contexto);
 
     }
 
@@ -43,9 +43,9 @@ public class HomeModel implements Contract.ModelMVP {
     @Override
     public void res(Context contexto, Handler bluetoothIn) {
 
-        if (mConexionBluetooth.res(contexto) == 1) { // configuarion para antes de iniciarlo
+        //if (mConexionBluetooth.res(contexto) == 1) { // configuarion para antes de iniciarlo, se conecta
             mConexionBluetooth.start();
-        }
+        //}
 
     }
 

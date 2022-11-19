@@ -111,10 +111,11 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
                 float value = sensorEvent.values[0];
                 float range = valueMax * dark_mode_sensibility_level;
                 //getSupportActionBar().setTitle("Luminosidad : " + value);
-
+                Log.d(TAG, "...EJECUTO SENSOR.............................................................");
                 if (value < range)
-                    getDelegate().setLocalNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-                else getDelegate().setLocalNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                else
+                    AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
             }
 
             @Override
@@ -130,7 +131,7 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     public void onResume() {
         super.onResume();
         Log.d(TAG, "...onResumeeeeeeeeeee.............................................................");
-
+        sensorManager.registerListener(lightEventListener, lightSensor, SensorManager.SENSOR_DELAY_FASTEST);
             if( presenter.checkBtStateHome() == 1) {
                 btn_conectar.setVisibility(View.GONE);
                 btn_watering.setVisibility(View.VISIBLE);
@@ -159,7 +160,7 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     protected void onStop() {
         super.onStop();
         primera = 1;
-        Log.d(TAG, "Paso al estado Destroyed............................................");
+        Log.d(TAG, "Paso al estado onSotp............................................");
         try {
             presenter.pause();
         } catch (IOException e) {
@@ -171,8 +172,25 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.d(TAG, "Paso al estado Destroyed............................................");
+
 
     }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "STARRRT............................................");
+
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        Log.d(TAG, "RESTAAAAART............................................");
+    }
+
+
 
     // fin bluetooh
 

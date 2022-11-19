@@ -21,7 +21,7 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
     public Presenter(Contract.ViewMVP homeView, Context contexto) { // constructor
         this.homeView = homeView;
         this.bluetoohIn = mensajeHandler();
-        this.model = new HomeModel(this.bluetoohIn);
+        this.model = new HomeModel(this.bluetoohIn,contexto);
         this.contexto = contexto;
     }
 
