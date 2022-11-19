@@ -3,12 +3,16 @@ package com.app.riegomatic;
 import static android.content.ContentValues.TAG;
 
 import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
@@ -18,8 +22,11 @@ import android.widget.Toast;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.io.IOException;
 
@@ -32,6 +39,20 @@ public class ConexionBlutooth extends Thread {
     private OutputStream mmOutStream;
     private Handler bluetoothIn;
 
+    // el ejemplo que mando profe (no funciono)
+    String[] permissions = new String[]{
+            Manifest.permission.BLUETOOTH,
+            Manifest.permission.BLUETOOTH_ADMIN,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_ADVERTISE};
+
+
     public ConexionBlutooth(Handler bluetoothIn){
         btAdapter = BluetoothAdapter.getDefaultAdapter();
         btSocket = null;
@@ -39,30 +60,26 @@ public class ConexionBlutooth extends Thread {
 
     }
     public int crear(Context contexto) {
-        checkBTState(contexto);
+       return checkBTState(contexto);
 
-        return 1;
     }
 
     public BluetoothSocket createBluetoothSocket(BluetoothDevice device, Context contexto) throws IOException {
 
+
+        // lo que estaba en el on resumen
         if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            // return device.createRfcommSocketToServiceRecord(BTMODULEUUID);
+            //solicitar permiso bluetooth_connect
+
         }
-        return device.createRfcommSocketToServiceRecord(BTMODULEUUID);
-        //creates secure outgoing connecetion with BT device using UUID
+            //creates secure outgoing connecetion with BT device using UUID
+            return device.createRfcommSocketToServiceRecord(BTMODULEUUID);
+
     }
 
-    // lo que estaba en el on resumen
-    public void res(Context cotexto, Handler bluetoothIn) {
-        String address = "98:D3:61:F9:39:A5";
+
+        public int res(Context cotexto) {
+            String address = "98:D3:61:F9:39:A5";
 
         BluetoothDevice device = btAdapter.getRemoteDevice(address);
 
@@ -81,32 +98,27 @@ public class ConexionBlutooth extends Thread {
             try {
                 btSocket.close();
             } catch (IOException e2) {
+                return 0;
                 //insert code to deal with this
             }
         }
-        //presenter.onConectar(btSocket);
         this.ConnectedThread(btSocket);
-        // this.start(); esto lo inicia el modelo de home
-        //Log.d(TAG, "...START............................................................." );
-        //this.write("x");
+        Log.d(TAG, "...START............................................................." );
+        return 1;
     }
 
 
-    public void checkBTState(Context contexto) {
+    public int checkBTState(Context contexto) {
+
 
         if (btAdapter == null) {
             Toast.makeText(contexto, "El dispositivo no soporta bluetooth", Toast.LENGTH_LONG).show();
+            return 0;
         } else {
             if (btAdapter.isEnabled()) {
-            } else {
-                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    // que hacer si no tengo permisos
-                }
-                contexto.startActivity(enableBtIntent);
-
-
+                return 1;
             }
+            return 0;
         }
     }
 
@@ -151,11 +163,53 @@ public class ConexionBlutooth extends Thread {
                 String readMessage2 = new String(buffer, 0, bytes);
                 // Send the obtained bytes to the UI Activity via handler
                 bluetoothIn.obtainMessage(0, bytes, -1, readMessage2).sendToTarget();
-                // presenter.onRecibirMesaje(bytes,readMessage);
-                // presenter.actualizarCampos("hola");
             } catch (IOException e) {
                 break;
             }
         }
     }
+
+
+
+
+    private  boolean checkPermissions(Context contexto) {
+        int result;
+        List<String> listPermissionsNeeded = new ArrayList<>();
+
+        //Se chequea si la version de Android es menor a la 6
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return true;
+        }
+        for (String p:permissions) {
+            result = ContextCompat.checkSelfPermission(contexto,p);
+            if (result != PackageManager.PERMISSION_GRANTED) {
+                listPermissionsNeeded.add(p);
+            }
+        }
+        if (!listPermissionsNeeded.isEmpty()) {
+            ActivityCompat.requestPermissions((Activity) contexto, listPermissionsNeeded.toArray(new String[listPermissionsNeeded.size()]),2 );
+            return false;
+        }
+        return true;
+    }
+
+    public void encernderBluetooth(Context contexto){
+        Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+        if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            //solicitar permisos
+        }
+        contexto.startActivity(enableBtIntent);
+    }
+
+    public void pause() throws IOException {
+        try
+        {
+            btSocket.close();
+        } catch (IOException e2) {
+
+        }
+
+    }
+
+
 }

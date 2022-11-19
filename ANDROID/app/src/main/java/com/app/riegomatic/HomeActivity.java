@@ -1,11 +1,14 @@
 package com.app.riegomatic;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 
-
+import android.content.BroadcastReceiver;
 import android.content.Context;
 
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.util.Log;
 import android.content.Intent;
 import android.os.Bundle;
@@ -16,7 +19,7 @@ import android.annotation.SuppressLint;
 import android.os.Handler;
 
 
-
+import java.io.IOException;
 import java.util.UUID;
 
 
@@ -35,19 +38,22 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.widget.Toast;
 
 public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP {
 
     private TextView textStatus;
     private TextView humidity;
     private TextView water;
+    private Button btn_back ;
+    private Button btn_watering ;
+    private Button btn_onOf;
+    private Button btn_conectar;
+
     private Contract.PresenterMVP presenter;
-    Handler bluetoothIn;
-    final int handlerState = 0;
     private BluetoothAdapter btAdapter = null;
     private BluetoothSocket btSocket = null;
     private StringBuilder recDataString = new StringBuilder();
-    //private ConnectedThread mConnectedThread;
     private static final String TAG = "HomeActivity";
 
     //sensor
@@ -58,14 +64,11 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     private SensorEventListener lightEventListener;
     private float valueMax;
     private Context contexto;
+    public int flag = 1;
+    private  int primera = 1;
 
 
 
-    // SPP UUID service - this should work for most devices
-    private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-
-    // String for MAC address
-    private static String address = null;
 
     @SuppressLint("HandlerLeak")
     @Override
@@ -78,19 +81,21 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
         textStatus = findViewById(R.id.status);
         humidity = findViewById(R.id.humidity);
         water = findViewById(R.id.water);
-        Button btn_back = findViewById(R.id.back);
-        Button btn_watering = findViewById(R.id.watering);
-        Button btn_onOf= findViewById(R.id.power);
+        btn_back = findViewById(R.id.back);
+        btn_watering = findViewById(R.id.watering);
+        btn_onOf= findViewById(R.id.power);
+        btn_conectar= findViewById(R.id.conectar);
 
 
         btn_back.setOnClickListener(btnListener);
         btn_watering.setOnClickListener(btnListener);
         btn_onOf.setOnClickListener(btnListener);
+        btn_conectar.setOnClickListener(btnListener);
 
         presenter = new Presenter(this,contexto);
-        //presenter.onSetPresenterModel();
-        // bluetooth
-        presenter.checkBtStateHome();
+
+
+
         Log.d(TAG, "...onCreate.............................................................");
 
 
@@ -118,19 +123,6 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
             }
         };
 
-        // Button back = findViewById(R.id.back);
-        // back.setOnClickListener(new View.OnClickListener() {
-        //     @Override
-        //     public void onClick(View view) {
-        //         Intent intent2 = new Intent(view.getContext(), MainActivity.class);
-        //         startActivityForResult(intent2,0);
-        //     }
-        // });
-
-
-
-
-
     }
 
 
@@ -138,17 +130,48 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     public void onResume() {
         super.onResume();
         Log.d(TAG, "...onResumeeeeeeeeeee.............................................................");
-        presenter.res();
-        //presenter.onConectar();
-        //sensorManager.registerListener(lightEventListener, lightSensor, SensorManager.SENSOR_DELAY_FASTEST);
-    }
+
+            if( presenter.checkBtStateHome() == 1) {
+                btn_conectar.setVisibility(View.GONE);
+                btn_watering.setVisibility(View.VISIBLE);
+                btn_onOf.setVisibility(View.VISIBLE);
+                presenter.res();
+            } else if(primera == 1) {
+                presenter.encenderBluetooth();
+            } else {
+                btn_conectar.setVisibility(View.VISIBLE);
+                btn_watering.setVisibility(View.GONE);
+                btn_onOf.setVisibility(View.GONE);
+            }
+
+        }
 
     @Override
     public void onPause() {
         super.onPause();
+        primera++;
+        Log.d(TAG, "...onPauseeeeeee.............................................................");
         //btSocket.close();
-
         sensorManager.unregisterListener(lightEventListener);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        primera = 1;
+        Log.d(TAG, "Paso al estado Destroyed............................................");
+        try {
+            presenter.pause();
+        } catch (IOException e) {
+            Log.d(TAG, "...exeption en el onPause.............................................................");
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
     }
 
     // fin bluetooh
@@ -190,6 +213,9 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
                 case R.id.power:
                     presenter.arduinoOnOf();
                     break;
+                case R.id.conectar:
+                    presenter.encenderBluetooth();
+                    break;
                 case R.id.back:
 
                         Intent intent2 = new Intent(view.getContext(), MainActivity.class);
@@ -200,4 +226,7 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
             }
         }
     };
+    public void setFlag(int valor){
+        this.flag = valor;
+    }
 }

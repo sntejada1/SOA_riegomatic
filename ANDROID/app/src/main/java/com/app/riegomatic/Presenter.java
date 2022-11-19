@@ -1,11 +1,11 @@
 package com.app.riegomatic;
 import android.annotation.SuppressLint;
-import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.util.Log;
 
 import android.os.Handler;
-import java.util.logging.LogRecord;
+
+import java.io.IOException;
 
 public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.PresenterMVP{
 
@@ -25,7 +25,7 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
         this.contexto = contexto;
     }
 
-    private Handler mensajeHandler() {
+    private Handler mensajeHandler() { // accion que se realiza cuando llega un mensaje por bluetooth
         @SuppressLint("HandlerLeak") Handler bt = new Handler() {
             public void handleMessage(android.os.Message msg) {
                 if (msg.what == handlerState) {          //if message is what we want
@@ -88,26 +88,9 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
 
     }
     
-    @Override
-    public void onButtonClick() {
-        this.model.sendMessage(this);
-        // this.model.watering();
-    }
 
-    @Override
-    public void onRecibirMesaje(int bytes, String readMessage) {
-        this.model.recibirMensaje(bytes, readMessage);
-    }
 
-    @Override
-    public void onConectar(BluetoothSocket btSocket) {
-        this.model.conectar(btSocket);
-    }
 
-    @Override
-    public void onConectar() {
-        this.model.conectar();
-    }
 
     @Override
     public void onDestroy() {
@@ -115,18 +98,34 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
     }
 
     @Override
-    public void checkBtStateHome(){
-        this.model.checkBTStatehome(contexto);
+    public int checkBtStateHome(){
+        if(this.model.checkBTStatehome(contexto) == 1) {
+            //this.homeView.setFlag(1);
+            Log.d(TAG, "...111111111111111111111111111111111............................................................." );
+            return 1;
+        } else {
+            //this.homeView.setFlag(0);
+
+            Log.d(TAG, "...000000000000000000000000000000............................................................." );
+            return 0;
+        }
+        //return 1;
     };
+
+    public void encenderBluetooth(){
+        this.model.encenderBluetooth(contexto);
+    }
+
+    public void pause() throws IOException {
+        this.model.pause();
+    }
+
 
     @Override
     public void res(){
         this.model.res(contexto,bluetoohIn);
     };
-    @Override
-    public void conectar(){
-        this.model.conectar();
-    };
+
 
     @Override
     public void watering() {

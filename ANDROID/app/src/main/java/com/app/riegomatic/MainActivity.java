@@ -39,6 +39,11 @@ public class MainActivity extends AppCompatActivity implements Contract.ViewMVP 
 
     }
 
+    @Override
+    public void setFlag(int valor) {
+
+    }
+
     private View.OnClickListener btnListener = new View.OnClickListener() {
         @SuppressLint("NonConstantResourceId")
         @Override
