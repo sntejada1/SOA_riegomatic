@@ -27,17 +27,32 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        tools:layout_editor_absoluteX="56dp"
+        tools:layout_editor_absoluteY="-39dp">
 
+
+        <Button
+            android:id="@+id/back"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center|center_horizontal|left"
+            android:layout_marginTop="20dp"
+            android:background="#00FFFFFF"
+            android:backgroundTint="#DAECCFCF"
+            android:text="@string/back"
+            android:textColor="#C6C0C0"
+            android:textStyle="bold"
+            tools:fontFamily="monospace" />
 
         <TextView
             android:layout_width="341dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginLeft="60dp"
-            android:layout_marginTop="80dp"
+            android:layout_marginTop="20dp"
             android:layout_marginRight="60dp"
-            android:layout_marginBottom="60dp"
+            android:layout_marginBottom="20dp"
             android:fontFamily="@font/allura"
             android:text="@string/app_name"
             android:textAlignment="center"
@@ -45,10 +60,10 @@
             tools:textAlignment="center" />
 
         <LinearLayout
-            android:layout_width="163dp"
+            android:layout_width="157dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginBottom="40dp"
+            android:layout_marginBottom="30dp"
             android:baselineAligned="true"
             android:orientation="vertical"
             android:textAlignment="center">
@@ -74,7 +89,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginBottom="70dp"
+            android:layout_marginBottom="100dp"
             android:orientation="horizontal">
 
             <LinearLayout
@@ -140,7 +155,7 @@
                 android:layout_width="141dp"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="25dp"
+                android:layout_marginBottom="50dp"
                 android:text="@string/watering"
                 android:textSize="20sp" />
 
@@ -153,17 +168,6 @@
                 android:textSize="20sp" />
 
         </LinearLayout>
-
-        <Button
-            android:id="@+id/back"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="70dp"
-            android:background="#00FFFFFF"
-            android:text="@string/back"
-            android:textColor="#000000"
-            tools:fontFamily="monospace" />
 
     </LinearLayout>
 
