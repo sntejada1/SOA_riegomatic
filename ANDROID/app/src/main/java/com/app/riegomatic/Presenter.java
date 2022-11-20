@@ -18,7 +18,6 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
     private String readMessage;
     private static final String TAG = "Presenter";
 
-
     public Presenter(Contract.ViewMVP homeView, Context contexto) { // constructor
         this.homeView = homeView;
         this.bluetoohIn = mensajeHandler();
@@ -82,10 +81,9 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
                 this.homeView.setWater("BAJA");
             }
         } catch (NumberFormatException e) {
-            Log.e(TAG,e.getMessage());
+            Log.e(TAG, e.getMessage());
             return;
         }
-
     }
 
     @Override
@@ -110,8 +108,8 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
         this.model.encenderBluetooth(contexto);
     }
 
-    public void pauseBluetooth() throws IOException {
-        this.model.pause();
+    public void desconectarBluetooth() throws IOException {
+        this.model.desconectarBluetooth();
     }
 
     @Override

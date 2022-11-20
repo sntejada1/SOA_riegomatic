@@ -156,7 +156,7 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
 
         nroConexionBluetooth = 1; //seteo para que sea la primera conexion que se realice...
         try {
-            presenter.pauseBluetooth();
+            presenter.desconectarBluetooth();
         } catch (IOException e) {
             Log.d(TAG, "...exeption en el onPause.............................................................");
             e.printStackTrace();

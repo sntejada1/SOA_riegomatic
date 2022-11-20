@@ -4,20 +4,15 @@ import static android.content.ContentValues.TAG;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 import android.util.Log;
-import android.widget.Toast;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothSocket;
 import android.widget.Toast;
 
 import java.io.InputStream;
@@ -26,12 +21,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import java.io.IOException;
 
-public class ConexionBlutooth extends Thread {
+@RequiresApi(api = Build.VERSION_CODES.S)
+public class ConexionBluetooth extends Thread {
 
     private BluetoothAdapter btAdapter;
     private BluetoothSocket btSocket;
@@ -41,8 +38,7 @@ public class ConexionBlutooth extends Thread {
     private Handler bluetoothIn;
     private Context contexto2;
 
-    // el ejemplo que mando profe (no funciono)
-    String[] permissions = new String[]{
+    String[] permissions = new String[]{  // el ejemplo que mando profe (no funciono)
             Manifest.permission.BLUETOOTH,
             Manifest.permission.BLUETOOTH_ADMIN,
             Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -55,18 +51,19 @@ public class ConexionBlutooth extends Thread {
             Manifest.permission.BLUETOOTH_ADVERTISE};
 
 
-    public ConexionBlutooth(Handler bluetoothIn, Context cotexto) {
+    public ConexionBluetooth(Handler bluetoothIn, Context cotexto) {
         btAdapter = BluetoothAdapter.getDefaultAdapter();
         btSocket = null;
         this.bluetoothIn = bluetoothIn;
         this.contexto2 = cotexto;
-
     }
 
     public int crear(Context contexto) {
         return checkBTState(contexto);
-
     }
+
+    //De aca para abajao falta revisar el codigo.
+
 
     public BluetoothSocket createBluetoothSocket(BluetoothDevice device, Context contexto) throws IOException {
 
@@ -115,7 +112,7 @@ public class ConexionBlutooth extends Thread {
         if (btAdapter == null) {
             Toast.makeText(contexto, "El dispositivo no soporta bluetooth", Toast.LENGTH_LONG).show();
             return 0;
-        }else if (btAdapter.isEnabled()) {
+        } else if (btAdapter.isEnabled()) {
             return 1;
         }
         return 0;
@@ -195,7 +192,7 @@ public class ConexionBlutooth extends Thread {
         return true;
     }
 
-    public void encernderBluetooth(Context contexto) {
+    public void encenderBluetooth(Context contexto) {
         Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
         if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             //solicitar permisos
@@ -203,7 +200,7 @@ public class ConexionBlutooth extends Thread {
         contexto.startActivity(enableBtIntent);
     }
 
-    public void pause() throws IOException {
+    public void desconectarBluetooth() throws IOException {
         try {
             if (btSocket != null) {
                 btSocket.close();

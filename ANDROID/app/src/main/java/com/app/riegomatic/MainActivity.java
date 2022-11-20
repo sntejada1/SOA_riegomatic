@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
 
             //Agrego al intent los parametros que se le quieren pasar a la activity principal
             // Esta linea por ahora no hace falta ya que no le voy a pasar ningun parametro al nuevo activity
-            intent.putExtra("textoOrigen", "HOOLA");
+            //intent.putExtra("textoOrigen", "HOOLA");
 
             startActivity(intent); //se inicia la activity principal
             finish();

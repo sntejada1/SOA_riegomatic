@@ -16,7 +16,7 @@ public interface Contract {
 
     interface ModelMVP{
         void encenderBluetooth(Context contexto);
-        void pause() throws IOException;
+        void desconectarBluetooth() throws IOException;
         interface OnSendToPresenter{
             void onFinished(String string);
         }
@@ -33,7 +33,7 @@ public interface Contract {
         void arduinoOnOf();
         int checkBtStateHome();
         void res();
-        void pauseBluetooth() throws IOException;
+        void desconectarBluetooth() throws IOException;
         void encenderBluetooth();
     }
 }
