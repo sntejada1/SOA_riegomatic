@@ -41,6 +41,7 @@ public class ThreadAsynctask extends AsyncTask {
     private OutputStream mmOutStream;
     private Handler bluetoothIn;
     private Context contexto2;
+    final private String MAC_Adress = "98:D3:61:F9:39:A5";;
 
     String[] permissions = new String[]{  // el ejemplo que mando profe (no funciono)
             Manifest.permission.BLUETOOTH,
@@ -65,6 +66,27 @@ public class ThreadAsynctask extends AsyncTask {
 
     @Override
     protected Object doInBackground(Object[] objects) {
+        Log.d(TAG, "...Corriendo hilo en background .............................................................");
+        if (this.res(this.contexto2) == 1) {
+            Log.d(TAG, "...do in background DENTRO IF.............................................................");
+            this.write("x");
+            byte[] buffer = new byte[256];
+            int bytes;
+            int i = 0;
+            // Keep looping to listen for received messages
+            while (true) {
+                try {
+                    Log.d(TAG, "...EJECUTANDO WHILEEEEEEEE............................................................." + i);
+                    i++;
+                    bytes = mmInStream.read(buffer);         //read bytes from input buffer
+                    String readMessage2 = new String(buffer, 0, bytes);
+                    // Send the obtained bytes to the UI Activity via handler
+                    bluetoothIn.obtainMessage(0, bytes, -1, readMessage2).sendToTarget();
+                } catch (IOException e) {
+                    break;
+                }
+            }
+        }
         return null;
     }
 
@@ -82,28 +104,23 @@ public class ThreadAsynctask extends AsyncTask {
         return checkBTState(contexto);
     }
 
-    
     //De aca para abajo falta revisar el codigo.
 
+    
 
     public BluetoothSocket createBluetoothSocket(BluetoothDevice device, Context contexto) throws IOException {
 
-
-        // lo que estaba en el on resumen
+        // lo que estaba en el onResume
         if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             //solicitar permiso bluetooth_connect
-
         }
         //creates secure outgoing connecetion with BT device using UUID
         return device.createRfcommSocketToServiceRecord(BTMODULEUUID);
-
     }
 
-
     public int res(Context cotexto) {
-        String address = "98:D3:61:F9:39:A5";
 
-        BluetoothDevice device = btAdapter.getRemoteDevice(address);
+        BluetoothDevice device = btAdapter.getRemoteDevice(MAC_Adress);
 
         try {
             btSocket = createBluetoothSocket(device, cotexto);
@@ -163,31 +180,6 @@ public class ThreadAsynctask extends AsyncTask {
             //Toast.makeText(getBaseContext(), "La Conexión fallo", Toast.LENGTH_LONG).show();
             // finish();
 
-        }
-    }
-
-
-    public void run() {
-        Log.d(TAG, "...RUUUUUNS.............................................................");
-        if (this.res(this.contexto2) == 1) {
-            Log.d(TAG, "...RUNNNNN DENTRO IF.............................................................");
-            this.write("x");
-            byte[] buffer = new byte[256];
-            int bytes;
-            int i = 0;
-            // Keep looping to listen for received messages
-            while (true) {
-                try {
-                    Log.d(TAG, "...EJECUTANDO WHILEEEEEEEE............................................................." + i);
-                    i++;
-                    bytes = mmInStream.read(buffer);         //read bytes from input buffer
-                    String readMessage2 = new String(buffer, 0, bytes);
-                    // Send the obtained bytes to the UI Activity via handler
-                    bluetoothIn.obtainMessage(0, bytes, -1, readMessage2).sendToTarget();
-                } catch (IOException e) {
-                    break;
-                }
-            }
         }
     }
 
