@@ -62,7 +62,7 @@ public class ConexionBlutooth extends Thread {
 
     }
     public int crear(Context contexto) {
-       return checkBTState(contexto);
+        return checkBTState(contexto);
 
     }
 
@@ -74,13 +74,13 @@ public class ConexionBlutooth extends Thread {
             //solicitar permiso bluetooth_connect
 
         }
-            //creates secure outgoing connecetion with BT device using UUID
-            return device.createRfcommSocketToServiceRecord(BTMODULEUUID);
+        //creates secure outgoing connecetion with BT device using UUID
+        return device.createRfcommSocketToServiceRecord(BTMODULEUUID);
 
     }
 
 
-        public int res(Context cotexto) {
+    public int res(Context cotexto) {
         String address = "98:D3:61:F9:39:A5";
 
         BluetoothDevice device = btAdapter.getRemoteDevice(address);
