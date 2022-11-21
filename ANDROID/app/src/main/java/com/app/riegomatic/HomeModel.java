@@ -44,7 +44,7 @@ public class HomeModel implements Contract.ModelMVP {
     public void res(Context contexto, Handler bluetoothIn) {
 
         //if (mConexionBluetooth.res(contexto) == 1) { // configuarion para antes de iniciarlo, se conecta
-        mConexionBluetooth.start();
+            mConexionBluetooth.start();
         //}
 
     }

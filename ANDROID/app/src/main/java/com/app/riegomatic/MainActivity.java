@@ -18,7 +18,7 @@ public class MainActivity extends AppCompatActivity implements Contract.ViewMVP 
         setContentView(R.layout.activity_main);
 
         Button login = findViewById(R.id.login);
-
+        
         login.setOnClickListener(btnListener);
 
 
@@ -30,10 +30,10 @@ public class MainActivity extends AppCompatActivity implements Contract.ViewMVP 
         textView.setText(string);
     }
     public void setHumedad(String string) {
-
+        
     }
     public void setWater(String string) {
-
+        
     }
     public void setEstado(String string) {
 

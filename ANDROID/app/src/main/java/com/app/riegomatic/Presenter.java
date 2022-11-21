@@ -87,7 +87,7 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
         }
 
     }
-
+    
 
 
 

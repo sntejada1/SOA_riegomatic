@@ -132,20 +132,20 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
         super.onResume();
         Log.d(TAG, "...onResumeeeeeeeeeee.............................................................");
         sensorManager.registerListener(lightEventListener, lightSensor, SensorManager.SENSOR_DELAY_FASTEST);
-        if( presenter.checkBtStateHome() == 1) {
-            btn_conectar.setVisibility(View.GONE);
-            btn_watering.setVisibility(View.VISIBLE);
-            btn_onOf.setVisibility(View.VISIBLE);
-            presenter.res();
-        } else if(primera == 1) {
-            presenter.encenderBluetooth();
-        } else {
-            btn_conectar.setVisibility(View.VISIBLE);
-            btn_watering.setVisibility(View.GONE);
-            btn_onOf.setVisibility(View.GONE);
-        }
+            if( presenter.checkBtStateHome() == 1) {
+                btn_conectar.setVisibility(View.GONE);
+                btn_watering.setVisibility(View.VISIBLE);
+                btn_onOf.setVisibility(View.VISIBLE);
+                presenter.res();
+            } else if(primera == 1) {
+                presenter.encenderBluetooth();
+            } else {
+                btn_conectar.setVisibility(View.VISIBLE);
+                btn_watering.setVisibility(View.GONE);
+                btn_onOf.setVisibility(View.GONE);
+            }
 
-    }
+        }
 
     @Override
     public void onPause() {
@@ -236,8 +236,8 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
                     break;
                 case R.id.back:
 
-                    Intent intent2 = new Intent(view.getContext(), MainActivity.class);
-                    startActivityForResult(intent2,0);
+                        Intent intent2 = new Intent(view.getContext(), MainActivity.class);
+                        startActivityForResult(intent2,0);
                     break;
                 default:
                     throw new IllegalStateException("Unexpexted value" + view.getId());

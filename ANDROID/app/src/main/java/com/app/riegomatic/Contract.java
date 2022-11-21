@@ -22,7 +22,7 @@ public interface Contract {
 
         interface OnSendToPresenter{
             void onFinished(String string);
-
+            
         }
         void sendMessage(Contract.ModelMVP.OnSendToPresenter presenter);
         void recibirMensaje(int bytes, String readMessage);
