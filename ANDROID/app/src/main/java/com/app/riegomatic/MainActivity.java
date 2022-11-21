@@ -1,21 +1,30 @@
 package com.app.riegomatic;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.annotation.SuppressLint;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity implements Contract.ViewMVP {
 
     private TextView textView;
+    private BluetoothAdapter btAdapter;
+    public ConexionBlutooth mConexionBluetooth; // solo se va a utilizar para saber el estado del bt(encendido/apago) y prenderlo en caso que sea necesario.
+    @RequiresApi(api = Build.VERSION_CODES.S)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main); //muestro la view..
+
+        mConexionBluetooth = new ConexionBlutooth();
 
         Button login = findViewById(R.id.login);
 
@@ -45,23 +54,21 @@ public class MainActivity extends AppCompatActivity implements Contract.ViewMVP 
     }
 
     private View.OnClickListener btnListener = new View.OnClickListener() {
+        @RequiresApi(api = Build.VERSION_CODES.S)
         @SuppressLint("NonConstantResourceId")
         @Override
         public void onClick(View view) {
             Intent intent;
             switch (view.getId()) {
                 case R.id.login:
+                    startHome();
                     //se genera un Intent para poder lanzar la activity principal
-                    intent = new Intent(MainActivity.this, HomeActivity.class);
-
-                    //Se le agrega al intent los parametros que se le quieren pasar a la activyt principal
-                    //cuando se lanzado
-                    intent.putExtra("textoOrigen", "HOOLA"); // Esta linea por ahora no hace falta ya que no le voy a pasar ningun parametro al nuevo activity 
+                    //intent = new Intent(MainActivity.this, HomeActivity.class);
 
                     //se inicia la activity principal
-                    startActivity(intent);
+                    //startActivity(intent);
 
-                    finish();
+                    //finish();
 
                     break;
                 default:
@@ -69,4 +76,28 @@ public class MainActivity extends AppCompatActivity implements Contract.ViewMVP 
             }
         }
     };
+
+    @RequiresApi(api = Build.VERSION_CODES.S)
+    private void startHome() {
+        if(this.checkStatusBt() == 1) {
+            Intent intent;
+            intent = new Intent(MainActivity.this, HomeActivity.class);
+
+            //se inicia la activity principal
+            startActivity(intent);
+
+            finish();
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.S)
+    private int checkStatusBt(){
+        if ( mConexionBluetooth.checkBTState(this) != 1) {
+            //mConexionBluetooth.encenderBluetooth(this);
+            mConexionBluetooth.encernderBluetooth(this);
+
+            return 0;
+        }
+        return 1 ;
+    }
 }

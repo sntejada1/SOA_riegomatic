@@ -39,11 +39,14 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
                             String humedad = readMessage.substring(0, endOfLineIndex);
                             String distancia = readMessage.substring(endOfLineIndex+1);
                             actualizarHumedad(humedad);
-                            homeView.setHumedad(humedad);
                             actualizarDistancia(distancia);
                         }
                     } else if(readMessage.length() > 2){
                         // presenter.actualizarEstado(readMessage.substring(1));
+                    } else if(readMessage.equals("-1")){ // menos uno llego el mensaje de desconctado
+                        actualizarEstado("DESCONECTADO");
+                        actualizarHumedad("-");
+                        actualizarDistancia("-");
                     }
                 }
             }

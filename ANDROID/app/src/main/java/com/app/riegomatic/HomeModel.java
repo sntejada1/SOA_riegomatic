@@ -43,9 +43,7 @@ public class HomeModel implements Contract.ModelMVP {
     @Override
     public void res(Context contexto, Handler bluetoothIn) {
 
-        //if (mConexionBluetooth.res(contexto) == 1) { // configuarion para antes de iniciarlo, se conecta
         mConexionBluetooth.start();
-        //}
 
     }
 
@@ -60,7 +58,7 @@ public class HomeModel implements Contract.ModelMVP {
 
     @Override
     public void pause() throws IOException {
-        mConexionBluetooth.pause();
+        mConexionBluetooth.desconectarBluetooth();
     }
 }
 

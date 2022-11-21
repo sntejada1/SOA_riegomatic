@@ -68,7 +68,43 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     private  int primera = 1;
 
 
+    private final BroadcastReceiver bReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
 
+            // Filtramos por la accion. Nos interesa detectar BluetoothAdapter.ACTION_STATE_CHANGED
+            if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
+                final int estado = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+                switch (estado) {
+                    // Apagado
+                    case BluetoothAdapter.STATE_OFF: {
+                        Log.d(TAG, "...EJECUTO cambio de estado.............................................................");
+                        btn_back.performClick();
+                        break;
+                    }
+
+                    // Encendido
+                    case BluetoothAdapter.STATE_DISCONNECTING: {
+                        Log.d(TAG, "...Se cancelo la conexion1.............................................................");
+                        btn_back.performClick();
+                        //((Button)findViewById(R.id.btnBluetooth)).setText(R.string.DesactivarBluetooth);
+                        break;
+                    }
+                    case BluetoothAdapter.STATE_DISCONNECTED: {
+                        Log.d(TAG, "...Se cancelo la conexion2s.............................................................");
+                        btn_back.performClick();
+                        //((Button)findViewById(R.id.btnBluetooth)).setText(R.string.DesactivarBluetooth);
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }
+        }
+
+        ;
+    };
 
     @SuppressLint("HandlerLeak")
     @Override
@@ -124,21 +160,32 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
             }
         };
 
+
+        // cambio bt
+
+
+
     }
 
+    private void registrarEventosBluetooth()
+    {
+// Registramos el BroadcastReceiver que instanciamos previamente para
+// detectar los distintos eventos que queremos recibir
+        IntentFilter filtro = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        this.registerReceiver(bReceiver, filtro);
+    }
 
     @Override
     public void onResume() {
         super.onResume();
         Log.d(TAG, "...onResumeeeeeeeeeee.............................................................");
         sensorManager.registerListener(lightEventListener, lightSensor, SensorManager.SENSOR_DELAY_FASTEST);
+        registrarEventosBluetooth();
         if( presenter.checkBtStateHome() == 1) {
             btn_conectar.setVisibility(View.GONE);
             btn_watering.setVisibility(View.VISIBLE);
             btn_onOf.setVisibility(View.VISIBLE);
             presenter.res();
-        } else if(primera == 1) {
-            presenter.encenderBluetooth();
         } else {
             btn_conectar.setVisibility(View.VISIBLE);
             btn_watering.setVisibility(View.GONE);
@@ -150,7 +197,6 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     @Override
     public void onPause() {
         super.onPause();
-        primera++;
         Log.d(TAG, "...onPauseeeeeee.............................................................");
         //btSocket.close();
         sensorManager.unregisterListener(lightEventListener);

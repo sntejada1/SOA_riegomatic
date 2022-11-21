@@ -22,6 +22,7 @@ import android.widget.Toast;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +40,7 @@ public class ConexionBlutooth extends Thread {
     private OutputStream mmOutStream;
     private Handler bluetoothIn;
     private Context contexto2;
+    private final String address = "98:D3:61:F9:39:A5";
 
     // el ejemplo que mando profe (no funciono)
     String[] permissions = new String[]{
@@ -61,6 +63,16 @@ public class ConexionBlutooth extends Thread {
         this.contexto2 = cotexto;
 
     }
+
+    public ConexionBlutooth(){
+        btAdapter = BluetoothAdapter.getDefaultAdapter();
+        btSocket = null;
+        this.bluetoothIn = null;
+        this.contexto2 = null;
+
+    }
+
+
     public int crear(Context contexto) {
         return checkBTState(contexto);
 
@@ -72,6 +84,7 @@ public class ConexionBlutooth extends Thread {
         // lo que estaba en el on resumen
         if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             //solicitar permiso bluetooth_connect
+            //checkPermissions(contexto);
 
         }
         //creates secure outgoing connecetion with BT device using UUID
@@ -80,8 +93,8 @@ public class ConexionBlutooth extends Thread {
     }
 
 
-    public int res(Context cotexto) {
-        String address = "98:D3:61:F9:39:A5";
+    public int conectarBluetooth(Context cotexto) {
+
 
         BluetoothDevice device = btAdapter.getRemoteDevice(address);
 
@@ -94,15 +107,17 @@ public class ConexionBlutooth extends Thread {
         try {
             if (ActivityCompat.checkSelfPermission(cotexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                 // lo que tengo que hacer si no tengo permisos
+                //checkPermissions(contexto);
             }
             btSocket.connect();
         } catch (IOException e) {
             try {
-                btSocket.close();
+                desconectarBluetooth();
             } catch (IOException e2) {
                 return 0;
                 //insert code to deal with this
             }
+            return 0;
         }
         this.ConnectedThread(btSocket);
         return 1;
@@ -152,7 +167,7 @@ public class ConexionBlutooth extends Thread {
 
     public void run() {
         Log.d(TAG, "...RUUUUUNS.............................................................");
-        if (this.res(this.contexto2) == 1 ) {
+        if (this.conectarBluetooth(this.contexto2) == 1 ) {
             Log.d(TAG, "...RUNNNNN DENTRO IF.............................................................");
             this.write("x");
             byte[] buffer = new byte[256];
@@ -168,9 +183,22 @@ public class ConexionBlutooth extends Thread {
                     // Send the obtained bytes to the UI Activity via handler
                     bluetoothIn.obtainMessage(0, bytes, -1, readMessage2).sendToTarget();
                 } catch (IOException e) {
+                    String mensaje = "-1";
+                    byte[] bytess = mensaje.getBytes();
+                    //bytes = ByteBuffer.wrap(mensaje.getBytes()).getInt();
+                    bluetoothIn.obtainMessage(0, 2000, -1, mensaje).sendToTarget();
+                    Log.e(TAG, "...SE PERDIO LA CONEXION .............................................................");
                     break;
                 }
             }
+        }else {
+            int bytes;
+            String mensaje = "-1";
+            byte[] bytess = mensaje.getBytes();
+            //bytes = ByteBuffer.wrap(mensaje.getBytes()).getInt();
+            bluetoothIn.obtainMessage(0, 2000, -1, mensaje).sendToTarget();
+            Log.e(TAG, "...NO SE PUDO REALIZAR LA CONEXION .............................................................");
+
         }
     }
 
@@ -206,7 +234,7 @@ public class ConexionBlutooth extends Thread {
         contexto.startActivity(enableBtIntent);
     }
 
-    public void pause() throws IOException {
+    public void desconectarBluetooth() throws IOException {
         try
         {
             if(btSocket != null){
