@@ -16,6 +16,7 @@ import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -27,11 +28,12 @@ import java.util.List;
 import java.util.UUID;
 
 /*
-* Usando Asynctask debería ser mas simple manejar los hilos secundarios ya que no hace falta
-* implementar el manejador para poder mostrar los cambios en pantalla, aca usamos onProgressUpdate
-* y listo, nos conectamos con le thread ppal..
-* */
+ * Usando Asynctask debería ser mas simple manejar los hilos secundarios ya que no hace falta
+ * implementar el manejador para poder mostrar los cambios en pantalla, aca usamos onProgressUpdate
+ * y listo, nos conectamos con le thread ppal..
+ * */
 
+@RequiresApi(api = Build.VERSION_CODES.S)
 public class ThreadAsynctask extends AsyncTask {
 
     private BluetoothAdapter btAdapter;
@@ -41,7 +43,7 @@ public class ThreadAsynctask extends AsyncTask {
     private OutputStream mmOutStream;
     private Handler bluetoothIn;
     private Context contexto2;
-    final private String MAC_Adress = "98:D3:61:F9:39:A5";;
+    final private String MAC_Adress = "98:D3:61:F9:39:A5";
 
     String[] permissions = new String[]{  // el ejemplo que mando profe (no funciono)
             Manifest.permission.BLUETOOTH,
@@ -56,20 +58,23 @@ public class ThreadAsynctask extends AsyncTask {
             Manifest.permission.BLUETOOTH_ADVERTISE};
 
 
-    public ThreadAsynctask(Handler bluetoothIn, Context cotexto){
+    public ThreadAsynctask(Handler bluetoothIn, Context contexto) {
         super();
+        //Obtengo el adaptador bluetooth por defecto del master..
         btAdapter = BluetoothAdapter.getDefaultAdapter();
         btSocket = null;
         this.bluetoothIn = bluetoothIn;
-        this.contexto2 = cotexto;
+        this.contexto2 = contexto;
     }
 
     @Override
     protected Object doInBackground(Object[] objects) {
         Log.d(TAG, "...Corriendo hilo en background .............................................................");
+
         if (this.res(this.contexto2) == 1) {
             Log.d(TAG, "...do in background DENTRO IF.............................................................");
             this.write("x");
+
             byte[] buffer = new byte[256];
             int bytes;
             int i = 0;
@@ -93,21 +98,23 @@ public class ThreadAsynctask extends AsyncTask {
     @Override
     protected void onProgressUpdate(Object[] values) {
         super.onProgressUpdate(values);
+        //TODO falta implementar que mostrar..
     }
 
     @Override
     protected void onPostExecute(Object o) {
         super.onPostExecute(o);
+        //TODO falta implementar que hacer al finalizar..
     }
 
     public int crear(Context contexto) {
         return checkBTState(contexto);
     }
 
-    //De aca para abajo falta revisar el codigo.
 
-    
-
+    /*Aca deberíamos pedir permisos para llevar adelante el socket..
+    *
+    */
     public BluetoothSocket createBluetoothSocket(BluetoothDevice device, Context contexto) throws IOException {
 
         // lo que estaba en el onResume
@@ -118,28 +125,37 @@ public class ThreadAsynctask extends AsyncTask {
         return device.createRfcommSocketToServiceRecord(BTMODULEUUID);
     }
 
-    public int res(Context cotexto) {
+    /**
+     * Funcion que se encarga de realizar la conexion con el esclavo
+     * Posteriormente se queda manejando la recepcion y envío de mensajes..
+     * @param contexto
+     * @return
+     */
+    public int res(Context contexto) {
+        BluetoothDevice deviceHC06 = btAdapter.getRemoteDevice(MAC_Adress);
 
-        BluetoothDevice device = btAdapter.getRemoteDevice(MAC_Adress);
-
+        //creo el socket
         try {
-            btSocket = createBluetoothSocket(device, cotexto);
+            btSocket = createBluetoothSocket(deviceHC06, contexto);
         } catch (IOException e) {
-            Toast.makeText(cotexto, "La creacción del Socket fallo", Toast.LENGTH_LONG).show();
+            Toast.makeText(contexto, "La creacción del Socket fallo", Toast.LENGTH_LONG).show();
         }
-        // Establish the Bluetooth socket connection.
+
+        // establezco la conexion del socket.
         try {
-            if (ActivityCompat.checkSelfPermission(cotexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            //verifico si tengo los permisos necesarios..
+            if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                 // lo que tengo que hacer si no tengo permisos
             }
+            //intento realizar la conexion
             btSocket.connect();
         } catch (IOException e) {
             try {
-                btSocket.close();
-            } catch (IOException e2) {
-                return 0;
-                //insert code to deal with this
+                desconectarBluetooth();
+            } catch (IOException ex) {
+                ex.printStackTrace();
             }
+            return 0;
         }
         this.ConnectedThread(btSocket);
         return 1;
@@ -165,8 +181,8 @@ public class ThreadAsynctask extends AsyncTask {
             tmpIn = socket.getInputStream();
             tmpOut = socket.getOutputStream();
         } catch (IOException e) {
+            Log.e(TAG, e.getMessage()); // muestro el error..
         }
-
         mmInStream = tmpIn;
         mmOutStream = tmpOut;
     }
@@ -179,10 +195,8 @@ public class ThreadAsynctask extends AsyncTask {
             //if you cannot write, close the application
             //Toast.makeText(getBaseContext(), "La Conexión fallo", Toast.LENGTH_LONG).show();
             // finish();
-
         }
     }
-
 
     private boolean checkPermissions(Context contexto) {
         int result;
@@ -214,12 +228,8 @@ public class ThreadAsynctask extends AsyncTask {
     }
 
     public void desconectarBluetooth() throws IOException {
-        try {
-            if (btSocket != null) {
-                btSocket.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (btSocket != null) {
+            btSocket.close();
         }
     }
 
