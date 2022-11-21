@@ -48,14 +48,14 @@ public class ThreadAsynctask extends AsyncTask {
     String[] permissions = new String[]{  // el ejemplo que mando profe (no funciono)
             Manifest.permission.BLUETOOTH,
             Manifest.permission.BLUETOOTH_ADMIN,
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_ADVERTISE,
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.READ_PHONE_STATE,
             Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.BLUETOOTH_CONNECT,
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_ADVERTISE};
+            Manifest.permission.ACCESS_FINE_LOCATION};
 
 
     public ThreadAsynctask(Handler bluetoothIn, Context contexto) {
@@ -127,6 +127,7 @@ public class ThreadAsynctask extends AsyncTask {
 
     /**
      * Funcion que se encarga de realizar la conexion con el esclavo
+     *
      * @param contexto
      * @return
      */
@@ -138,14 +139,7 @@ public class ThreadAsynctask extends AsyncTask {
             btSocket = createBluetoothSocket(deviceHC06, contexto);
             // establezco la conexion del socket.
             if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                return 999;
+                checkPermissions(contexto);
             }
             btSocket.connect();
 
@@ -167,9 +161,10 @@ public class ThreadAsynctask extends AsyncTask {
         if (btAdapter == null) {
             Toast.makeText(contexto, "El dispositivo no soporta bluetooth", Toast.LENGTH_LONG).show();
             return 0;
-        } else if (btAdapter.isEnabled()) {
-            return 1;
         }
+        if (btAdapter.isEnabled())
+            return 1;
+
         return 0;
     }
 
@@ -201,6 +196,7 @@ public class ThreadAsynctask extends AsyncTask {
 
     private boolean checkPermissions(Context contexto) {
         int result;
+
         List<String> listPermissionsNeeded = new ArrayList<>();
 
         //Se chequea si la version de Android es menor a la 6
@@ -222,8 +218,9 @@ public class ThreadAsynctask extends AsyncTask {
 
     public void encenderBluetooth(Context contexto) {
         Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-        if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            //solicitar permisos
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            checkPermissions(contexto);
         }
         contexto.startActivity(enableBtIntent);
     }
@@ -233,7 +230,6 @@ public class ThreadAsynctask extends AsyncTask {
             btSocket.close();
         }
     }
-
 
 
 }
