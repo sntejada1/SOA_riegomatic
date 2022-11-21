@@ -71,7 +71,7 @@ public class ThreadAsynctask extends AsyncTask {
     protected Object doInBackground(Object[] objects) {
         Log.d(TAG, "...Corriendo hilo en background .............................................................");
 
-        if (this.res(this.contexto2) == 1) {
+        if (this.conectarBluetooth(this.contexto2) == 1) {
             Log.d(TAG, "...do in background DENTRO IF.............................................................");
             this.write("x");
 
@@ -113,8 +113,8 @@ public class ThreadAsynctask extends AsyncTask {
 
 
     /*Aca deberíamos pedir permisos para llevar adelante el socket..
-    *
-    */
+     *
+     */
     public BluetoothSocket createBluetoothSocket(BluetoothDevice device, Context contexto) throws IOException {
 
         // lo que estaba en el onResume
@@ -127,29 +127,30 @@ public class ThreadAsynctask extends AsyncTask {
 
     /**
      * Funcion que se encarga de realizar la conexion con el esclavo
-     * Posteriormente se queda manejando la recepcion y envío de mensajes..
      * @param contexto
      * @return
      */
-    public int res(Context contexto) {
+    public int conectarBluetooth(Context contexto) {
         BluetoothDevice deviceHC06 = btAdapter.getRemoteDevice(MAC_Adress);
 
-        //creo el socket
         try {
+            //creo el socket entre disp android y hc06..
             btSocket = createBluetoothSocket(deviceHC06, contexto);
-        } catch (IOException e) {
-            Toast.makeText(contexto, "La creacción del Socket fallo", Toast.LENGTH_LONG).show();
-        }
-
-        // establezco la conexion del socket.
-        try {
-            //verifico si tengo los permisos necesarios..
+            // establezco la conexion del socket.
             if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                // lo que tengo que hacer si no tengo permisos
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return 999;
             }
-            //intento realizar la conexion
             btSocket.connect();
+
         } catch (IOException e) {
+            Toast.makeText(contexto, "La creacción y conexion del Socket fallo", Toast.LENGTH_LONG).show();
             try {
                 desconectarBluetooth();
             } catch (IOException ex) {
@@ -157,10 +158,10 @@ public class ThreadAsynctask extends AsyncTask {
             }
             return 0;
         }
+
         this.ConnectedThread(btSocket);
         return 1;
     }
-
 
     public int checkBTState(Context contexto) {
         if (btAdapter == null) {
@@ -232,5 +233,7 @@ public class ThreadAsynctask extends AsyncTask {
             btSocket.close();
         }
     }
+
+
 
 }
