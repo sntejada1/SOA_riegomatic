@@ -8,10 +8,12 @@ import android.os.Handler;
 import androidx.annotation.RequiresApi;
 
 import java.io.IOException;
+import java.util.concurrent.Executor;
 
 public class HomeModel implements Contract.ModelMVP {
 
-    public ConexionBluetooth mConexionBluetooth;
+//    public ConexionBluetooth mConexionBluetooth;
+    public ThreadAsynctask mConexionBluetooth;
     Handler bluetoothIn;
     final int handlerState = 0;
 
@@ -19,7 +21,7 @@ public class HomeModel implements Contract.ModelMVP {
     @SuppressLint("HandlerLeak")
     public HomeModel(Handler bluetoothIn, Context contexto) {
         //nuevo
-        mConexionBluetooth = new ConexionBluetooth(bluetoothIn, contexto);
+        mConexionBluetooth = new ThreadAsynctask(bluetoothIn, contexto);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.S)
@@ -41,7 +43,7 @@ public class HomeModel implements Contract.ModelMVP {
     @Override
     public void res(Context contexto, Handler bluetoothIn) {
         //creo un hilo para conectar el bluetooth y posteriormente encargarme de la recepcion y el envio de mensajes..
-        mConexionBluetooth.start();
+        mConexionBluetooth.execute();
     }
 
     @Override

@@ -215,7 +215,6 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
                 case R.id.back:
                     Intent intent2 = new Intent(view.getContext(), MainActivity.class);
                     startActivity(intent2);
-//                        startActivityForResult(intent2,0);
                     break;
                 default:
                     throw new IllegalStateException("Unexpexted value" + view.getId());

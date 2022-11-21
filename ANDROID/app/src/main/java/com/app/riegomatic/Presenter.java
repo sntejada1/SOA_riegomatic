@@ -58,10 +58,6 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
         this.homeView.setString(string);
     }
 
-    public void actualizarCampos(String string) {
-        this.homeView.setString(string);
-    }
-
     public void actualizarHumedad(String string) {
         this.homeView.setHumedad(string);
     }

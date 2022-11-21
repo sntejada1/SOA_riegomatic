@@ -112,14 +112,11 @@ public class ThreadAsynctask extends AsyncTask {
     }
 
 
-    /*Aca deberíamos pedir permisos para llevar adelante el socket..
-     *
-     */
     public BluetoothSocket createBluetoothSocket(BluetoothDevice device, Context contexto) throws IOException {
 
         // lo que estaba en el onResume
         if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            //solicitar permiso bluetooth_connect
+            checkPermissions(contexto);
         }
         //creates secure outgoing connecetion with BT device using UUID
         return device.createRfcommSocketToServiceRecord(BTMODULEUUID);
@@ -142,7 +139,6 @@ public class ThreadAsynctask extends AsyncTask {
                 checkPermissions(contexto);
             }
             btSocket.connect();
-
         } catch (IOException e) {
             Toast.makeText(contexto, "La creacción y conexion del Socket fallo", Toast.LENGTH_LONG).show();
             try {
@@ -219,7 +215,7 @@ public class ThreadAsynctask extends AsyncTask {
     public void encenderBluetooth(Context contexto) {
         Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             checkPermissions(contexto);
         }
         contexto.startActivity(enableBtIntent);

@@ -11,7 +11,7 @@ public interface Contract {
         void setHumedad(String string);
         void setWater(String string);
         void setEstado(String string);
-        void setFlag(int valor);
+//        void setFlag(int valor);
     }
 
     interface ModelMVP{
