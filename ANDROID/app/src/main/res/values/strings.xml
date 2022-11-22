@@ -4,10 +4,10 @@
     <string name="login">Ingresar</string>
     <string name="status">Estado</string>
     <string name="humidity">Humedad</string>
-    <string name="water">% agua</string>
+    <string name="water">Nivel de Agua</string>
     <string name="watering">Regar</string>
-    <string name="power">Encendido</string>
+    <string name="power">ON / OFF</string>
     <string name="main">Welcome View</string>
     <string name="home">Riegomatic View</string>
-    <string name="back">Regresar</string>
+    <string name="back">&lt; Regresar</string>
 </resources>
