@@ -53,6 +53,11 @@ public class MainActivity extends AppCompatActivity implements Contract.ViewMVP 
 
     }
 
+    @Override
+    public void mostrarBtnConectar() {
+
+    }
+
     private View.OnClickListener btnListener = new View.OnClickListener() {
         @RequiresApi(api = Build.VERSION_CODES.S)
         @SuppressLint("NonConstantResourceId")

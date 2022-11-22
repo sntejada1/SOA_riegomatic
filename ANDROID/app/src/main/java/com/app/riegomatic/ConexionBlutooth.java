@@ -166,7 +166,8 @@ public class ConexionBlutooth extends Thread {
 
 
     public void run() {
-        Log.d(TAG, "...RUUUUUNS.............................................................");
+
+        Log.d(TAG, "...RUUUUUNS............................................................." + this.getId());
         if (this.conectarBluetooth(this.contexto2) == 1 ) {
             Log.d(TAG, "...RUNNNNN DENTRO IF.............................................................");
             this.write("x");
@@ -183,11 +184,17 @@ public class ConexionBlutooth extends Thread {
                     // Send the obtained bytes to the UI Activity via handler
                     bluetoothIn.obtainMessage(0, bytes, -1, readMessage2).sendToTarget();
                 } catch (IOException e) {
+                    Log.d(TAG, "...SE PERDIO LA CONEXION............................................................." + this.getId());
                     String mensaje = "-1";
                     byte[] bytess = mensaje.getBytes();
                     //bytes = ByteBuffer.wrap(mensaje.getBytes()).getInt();
                     bluetoothIn.obtainMessage(0, 2000, -1, mensaje).sendToTarget();
                     Log.e(TAG, "...SE PERDIO LA CONEXION .............................................................");
+                    try {
+                        this.desconectarBluetooth();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
                     break;
                 }
             }
@@ -197,6 +204,12 @@ public class ConexionBlutooth extends Thread {
             byte[] bytess = mensaje.getBytes();
             //bytes = ByteBuffer.wrap(mensaje.getBytes()).getInt();
             bluetoothIn.obtainMessage(0, 2000, -1, mensaje).sendToTarget();
+            try {
+                this.desconectarBluetooth();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            Log.d(TAG, "...NO SE PUDO REALIZAR LA CONEXION............................................................." + this.getId());
             Log.e(TAG, "...NO SE PUDO REALIZAR LA CONEXION .............................................................");
 
         }

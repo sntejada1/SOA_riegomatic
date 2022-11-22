@@ -12,6 +12,7 @@ public interface Contract {
         void setWater(String string);
         void setEstado(String string);
         void setFlag(int valor);
+        void mostrarBtnConectar();
     }
 
     interface ModelMVP{

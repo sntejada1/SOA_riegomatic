@@ -265,6 +265,13 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
 
     }
 
+    @Override
+    public void mostrarBtnConectar(){
+        btn_conectar.setVisibility(View.VISIBLE);
+        btn_watering.setVisibility(View.GONE);
+        btn_onOf.setVisibility(View.GONE);
+    }
+
     private View.OnClickListener btnListener = new View.OnClickListener() {
         @SuppressLint("NonConstantResourceId")
         @Override
@@ -278,12 +285,13 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
                     presenter.arduinoOnOf();
                     break;
                 case R.id.conectar:
-                    presenter.encenderBluetooth();
+                    //presenter.encenderBluetooth();
+                    presenter.res();
                     break;
                 case R.id.back:
 
                     Intent intent2 = new Intent(view.getContext(), MainActivity.class);
-                    startActivityForResult(intent2,0);
+                    startActivity(intent2);
                     break;
                 default:
                     throw new IllegalStateException("Unexpexted value" + view.getId());

@@ -29,6 +29,7 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
         @SuppressLint("HandlerLeak") Handler bt = new Handler() {
             public void handleMessage(android.os.Message msg) {
                 if (msg.what == handlerState) {          //if message is what we want
+                    actualizarEstado("CONECTADO");
                     readMessage = (String) msg.obj;
                     Log.d(TAG, "...ESTADOOOOOOOOOOOOOOOOOOOOOO............................................................." + msg.toString());
                     int endOfLineIndex = readMessage.indexOf("a");
@@ -47,6 +48,8 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
                         actualizarEstado("DESCONECTADO");
                         actualizarHumedad("-");
                         actualizarDistancia("-");
+                        mostrarBtnConectar();
+
                     }
                 }
             }
@@ -76,20 +79,30 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
 
 
     public void actualizarDistancia(String string) {
-        string = string.replaceAll("\\s+","");
-        try {
-            int distancia = Integer.parseInt(string.toString());
-            // this.homeView.setWater(string.toString());
-            if(distancia < 20) {
-                this.homeView.setWater("CORRECTA");
-            } else {
-                this.homeView.setWater("BAJA");
+        if(string == "-"){
+            this.homeView.setWater(string);
+        }else{
+            string = string.replaceAll("\\s+", "");
+            try {
+                int distancia = Integer.parseInt(string);
+                if (distancia < 20) {
+                    this.homeView.setWater("CORRECTA");
+                } else {
+                    this.homeView.setWater("BAJA");
+                }
+            } catch (NumberFormatException e) {
+                Log.e(TAG, e.getMessage());
+                return;
             }
-        } catch (NumberFormatException e) {
-            return;
         }
-
     }
+
+
+    public void mostrarBtnConectar(){
+        this.homeView.mostrarBtnConectar();
+    }
+
+
 
 
 

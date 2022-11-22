@@ -1,9 +1,12 @@
 package com.app.riegomatic;
 
 
+import static android.content.ContentValues.TAG;
+
 import android.content.Context;
 import android.annotation.SuppressLint;
 import android.os.Handler;
+import android.util.Log;
 
 import java.io.IOException;
 
@@ -59,6 +62,9 @@ public class HomeModel implements Contract.ModelMVP {
     @Override
     public void pause() throws IOException {
         mConexionBluetooth.desconectarBluetooth();
+        Log.d(TAG, "...INTERRUMPO............................................................." + mConexionBluetooth.getId());
+        mConexionBluetooth.interrupt();
+        mConexionBluetooth = null;
     }
 }
 
