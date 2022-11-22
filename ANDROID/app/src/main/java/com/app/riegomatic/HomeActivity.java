@@ -74,7 +74,6 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
             if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
                 final int estado = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
                 if(estado == BluetoothAdapter.STATE_OFF) {
-                    Log.d(TAG, "...EJECUTO cambio de estado.............................................................");
                     btn_back.performClick();
                 }
             }

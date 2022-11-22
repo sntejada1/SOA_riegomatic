@@ -338,22 +338,7 @@ void report_sensors_bth()
   str = "#" + strValorHumedad + 'a' + strValorDistancia + "\n" ;
   str.toCharArray(cstr, 10);
   miBT.write(cstr);
-  // miBT.write("\n");
   return;
-}
-
-void report_status_bth(String status)
-{
-
-  // enviar información se distancia y humedad.
-    
-  char cstr[15];
-  String estado = states_s[current_state]
-  String str = String(' ');
-  str = "#" + estado;
-  str.toCharArray(cstr, 15);
-  miBT.write(cstr);
-  // miBT.write("\n");
 }
 
 //----------------------------------------------
