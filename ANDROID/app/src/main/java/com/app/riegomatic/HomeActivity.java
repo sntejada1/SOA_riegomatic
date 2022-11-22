@@ -64,8 +64,7 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     private SensorEventListener lightEventListener;
     private float valueMax;
     private Context contexto;
-    public int flag = 1;
-    private  int primera = 1;
+
 
 
     private final BroadcastReceiver bReceiver = new BroadcastReceiver() {
@@ -76,34 +75,12 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
             // Filtramos por la accion. Nos interesa detectar BluetoothAdapter.ACTION_STATE_CHANGED
             if (BluetoothAdapter.ACTION_STATE_CHANGED.equals(action)) {
                 final int estado = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
-                switch (estado) {
-                    // Apagado
-                    case BluetoothAdapter.STATE_OFF: {
-                        Log.d(TAG, "...EJECUTO cambio de estado.............................................................");
-                        btn_back.performClick();
-                        break;
-                    }
-
-                    // Encendido
-                    case BluetoothAdapter.STATE_DISCONNECTING: {
-                        Log.d(TAG, "...Se cancelo la conexion1.............................................................");
-                        btn_back.performClick();
-                        //((Button)findViewById(R.id.btnBluetooth)).setText(R.string.DesactivarBluetooth);
-                        break;
-                    }
-                    case BluetoothAdapter.STATE_DISCONNECTED: {
-                        Log.d(TAG, "...Se cancelo la conexion2s.............................................................");
-                        btn_back.performClick();
-                        //((Button)findViewById(R.id.btnBluetooth)).setText(R.string.DesactivarBluetooth);
-                        break;
-                    }
-                    default:
-                        break;
+                if(estado == BluetoothAdapter.STATE_OFF) {
+                    Log.d(TAG, "...EJECUTO cambio de estado.............................................................");
+                    btn_back.performClick();
                 }
             }
         }
-
-        ;
     };
 
     @SuppressLint("HandlerLeak")
@@ -132,7 +109,7 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
 
 
 
-        Log.d(TAG, "...onCreate.............................................................");
+        //Log.d(TAG, "...onCreate.............................................................");
 
 
         //SensorLuminosities
@@ -159,12 +136,6 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
 
             }
         };
-
-
-        // cambio bt
-
-
-
     }
 
     private void registrarEventosBluetooth()
@@ -178,14 +149,14 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     @Override
     public void onResume() {
         super.onResume();
-        Log.d(TAG, "...onResumeeeeeeeeeee.............................................................");
+        //Log.d(TAG, "...onResumeeeeeeeeeee.............................................................");
         sensorManager.registerListener(lightEventListener, lightSensor, SensorManager.SENSOR_DELAY_FASTEST);
         registrarEventosBluetooth();
         if( presenter.checkBtStateHome() == 1) {
             btn_conectar.setVisibility(View.GONE);
             btn_watering.setVisibility(View.VISIBLE);
             btn_onOf.setVisibility(View.VISIBLE);
-            presenter.res();
+            presenter.conectarBluetooth();
         } else {
             btn_conectar.setVisibility(View.VISIBLE);
             btn_watering.setVisibility(View.GONE);
@@ -197,20 +168,18 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     @Override
     public void onPause() {
         super.onPause();
-        Log.d(TAG, "...onPauseeeeeee.............................................................");
-        //btSocket.close();
+        //Log.d(TAG, "...onPauseeeeeee.............................................................");
         sensorManager.unregisterListener(lightEventListener);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        primera = 1;
-        Log.d(TAG, "Paso al estado onSotp............................................");
+        //Log.d(TAG, "Paso al estado onSotp............................................");
         try {
-            presenter.pause();
+            presenter.desconectarBluetooth();
         } catch (IOException e) {
-            Log.d(TAG, "...exeption en el onPause.............................................................");
+          //  Log.d(TAG, "...exeption en el onPause.............................................................");
             e.printStackTrace();
         }
     }
@@ -218,7 +187,7 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "Paso al estado Destroyed............................................");
+       // Log.d(TAG, "Paso al estado Destroyed............................................");
 
 
     }
@@ -226,26 +195,19 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     @Override
     protected void onStart() {
         super.onStart();
-        Log.d(TAG, "STARRRT............................................");
+        //Log.d(TAG, "STARRRT............................................");
 
     }
 
     @Override
     protected void onRestart() {
         super.onRestart();
-        Log.d(TAG, "RESTAAAAART............................................");
+        //Log.d(TAG, "RESTAAAAART............................................");
     }
 
-
-
-    // fin bluetooh
 
     @SuppressLint("Range")
-    @Override
-    public void setString(String string) {
-        humidity.setText(string);
 
-    }
 
     @Override
     public void setHumedad(String string) {
@@ -283,7 +245,6 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
         @SuppressLint("NonConstantResourceId")
         @Override
         public void onClick(View view) {
-            Intent intent;
             switch(view.getId()) {
                 case R.id.watering:
                     presenter.watering();
@@ -292,13 +253,11 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
                     presenter.arduinoOnOf();
                     break;
                 case R.id.conectar:
-                    //presenter.encenderBluetooth();
                     //mostrar los botones
                     setEstado("CONECTANDO");
-                    presenter.res();
+                    presenter.conectarBluetooth();
                     break;
                 case R.id.back:
-
                     Intent intent2 = new Intent(view.getContext(), MainActivity.class);
                     startActivity(intent2);
                     break;
@@ -307,7 +266,4 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
             }
         }
     };
-    public void setFlag(int valor){
-        this.flag = valor;
-    }
 }
