@@ -53,7 +53,6 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
                         }
                     } else if (readMessage.equals(desconectado)) { // menos uno llego el mensaje de desconctado
                         //desconectar hilo
-                        Log.e(TAG, "...DESCONECTO IDOLO PRESENTADOR.............................................................");
                         desconectarHilo();
                         actualizarEstado("DESCONECTADO");
                         actualizarHumedad("-");
