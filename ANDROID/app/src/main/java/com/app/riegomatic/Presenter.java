@@ -21,7 +21,7 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
     private final String conectado = "-2";
     private final Character inicioMensajeArduino = 'a';
     private final Character finMensajeArduino = '#';
-    private final int tamDistanciaMax = 20;
+    private final int tamDistanciaMax = 16;
     private final int on = 1;
     private final int off = 0;
     private final String regar = "2";
