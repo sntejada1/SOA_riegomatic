@@ -45,10 +45,14 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
                     } else if(readMessage.length() > 2){
                         // presenter.actualizarEstado(readMessage.substring(1));
                     } else if(readMessage.equals("-1")){ // menos uno llego el mensaje de desconctado
+                        //desconectar hilo
+                        Log.e(TAG, "...DESCONECTO IDOLO PRESENTADOR.............................................................");
+                        desconectarHilo();
                         actualizarEstado("DESCONECTADO");
                         actualizarHumedad("-");
                         actualizarDistancia("-");
                         mostrarBtnConectar();
+
 
                     }
                 }
@@ -102,6 +106,16 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
         this.homeView.mostrarBtnConectar();
     }
 
+    public  void desconectarHilo(){
+        try {
+            if( this.model.statusHilo() ) {
+                this.model.pause();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
 
 
@@ -133,6 +147,7 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
     }
 
     public void pause() throws IOException {
+        Log.e(TAG, "...DESDE PAUSEEEEE.............................................................");
         this.model.pause();
     }
 

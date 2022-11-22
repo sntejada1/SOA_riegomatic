@@ -15,6 +15,7 @@ public class HomeModel implements Contract.ModelMVP {
     public ConexionBlutooth mConexionBluetooth;
     Handler bluetoothIn;
     final int handlerState = 0;
+    private boolean statusHilo;
 
     @SuppressLint("HandlerLeak")
 
@@ -45,7 +46,8 @@ public class HomeModel implements Contract.ModelMVP {
 
     @Override
     public void res(Context contexto, Handler bluetoothIn) {
-
+        mConexionBluetooth = new ConexionBlutooth(bluetoothIn, contexto);
+        statusHilo = true;
         mConexionBluetooth.start();
 
     }
@@ -62,9 +64,14 @@ public class HomeModel implements Contract.ModelMVP {
     @Override
     public void pause() throws IOException {
         mConexionBluetooth.desconectarBluetooth();
+        statusHilo = false;
         Log.d(TAG, "...INTERRUMPO............................................................." + mConexionBluetooth.getId());
         mConexionBluetooth.interrupt();
-        mConexionBluetooth = null;
+        //mConexionBluetooth = null;
+    }
+
+    public boolean statusHilo(){
+        return statusHilo;
     }
 }
 

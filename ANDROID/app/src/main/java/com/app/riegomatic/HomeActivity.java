@@ -286,6 +286,7 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
                     break;
                 case R.id.conectar:
                     //presenter.encenderBluetooth();
+                    //mostrar los botones
                     presenter.res();
                     break;
                 case R.id.back:

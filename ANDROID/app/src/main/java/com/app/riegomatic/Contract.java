@@ -21,6 +21,8 @@ public interface Contract {
         void encenderBluetooth(Context contexto);
         void pause() throws IOException;
 
+        boolean statusHilo();
+
         interface OnSendToPresenter{
             void onFinished(String string);
 
