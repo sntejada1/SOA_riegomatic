@@ -57,15 +57,13 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     private static final String TAG = "HomeActivity";
 
     //sensor
-
     public static final float dark_mode_sensibility_level = 0.25f;
     private SensorManager sensorManager;
     private Sensor lightSensor;
     private SensorEventListener lightEventListener;
     private float valueMax;
     private Context contexto;
-
-
+    private final int conectado = 1;
 
     private final BroadcastReceiver bReceiver = new BroadcastReceiver() {
         @Override
@@ -88,9 +86,11 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_home);
+        setContentView(R.layout.activity_home); //muestro la view
         contexto = this;
+        presenter = new Presenter(this,contexto);
 
+        //asigno los views a su al tipo de objeto correspondiente..
         textStatus = findViewById(R.id.status);
         humidity = findViewById(R.id.humidity);
         water = findViewById(R.id.water);
@@ -99,32 +99,21 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
         btn_onOf= findViewById(R.id.power);
         btn_conectar= findViewById(R.id.conectar);
 
-
+        //registro los listeners..
         btn_back.setOnClickListener(btnListener);
         btn_watering.setOnClickListener(btnListener);
         btn_onOf.setOnClickListener(btnListener);
         btn_conectar.setOnClickListener(btnListener);
 
-        presenter = new Presenter(this,contexto);
-
-
-
-        //Log.d(TAG, "...onCreate.............................................................");
-
-
         //SensorLuminosities
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-
         valueMax = lightSensor.getMaximumRange();
-
         lightEventListener = new SensorEventListener() {
             @Override
             public void onSensorChanged(SensorEvent sensorEvent) {
                 float value = sensorEvent.values[0];
                 float range = valueMax * dark_mode_sensibility_level;
-                //getSupportActionBar().setTitle("Luminosidad : " + value);
-                Log.d(TAG, "...EJECUTO SENSOR.............................................................");
                 if (value < range)
                     AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
                 else
@@ -133,26 +122,28 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
 
             @Override
             public void onAccuracyChanged(Sensor sensor, int i) {
-
+                //TODO Accuracy won't change.
             }
         };
     }
 
     private void registrarEventosBluetooth()
     {
-// Registramos el BroadcastReceiver que instanciamos previamente para
-// detectar los distintos eventos que queremos recibir
+        // Registramos el BroadcastReceiver que instanciamos previamente para
+        // detectar los distintos eventos que queremos recibir
         IntentFilter filtro = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         this.registerReceiver(bReceiver, filtro);
     }
 
+
+
     @Override
     public void onResume() {
         super.onResume();
-        //Log.d(TAG, "...onResumeeeeeeeeeee.............................................................");
+        //registro el listener para el sensor de luminocidad..
         sensorManager.registerListener(lightEventListener, lightSensor, SensorManager.SENSOR_DELAY_FASTEST);
         registrarEventosBluetooth();
-        if( presenter.checkBtStateHome() == 1) {
+        if( presenter.checkBtStateHome() == conectado) {
             btn_conectar.setVisibility(View.GONE);
             btn_watering.setVisibility(View.VISIBLE);
             btn_onOf.setVisibility(View.VISIBLE);
@@ -162,24 +153,20 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
             btn_watering.setVisibility(View.GONE);
             btn_onOf.setVisibility(View.GONE);
         }
-
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        //Log.d(TAG, "...onPauseeeeeee.............................................................");
         sensorManager.unregisterListener(lightEventListener);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        //Log.d(TAG, "Paso al estado onSotp............................................");
         try {
             presenter.desconectarBluetooth();
         } catch (IOException e) {
-          //  Log.d(TAG, "...exeption en el onPause.............................................................");
             e.printStackTrace();
         }
     }
@@ -187,44 +174,31 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-       // Log.d(TAG, "Paso al estado Destroyed............................................");
-
-
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        //Log.d(TAG, "STARRRT............................................");
-
     }
 
     @Override
     protected void onRestart() {
         super.onRestart();
-        //Log.d(TAG, "RESTAAAAART............................................");
     }
-
-
-    @SuppressLint("Range")
-
 
     @Override
     public void setHumedad(String string) {
         humidity.setText(string);
-
     }
 
     @Override
     public void setWater(String string) {
         water.setText(string);
-
     }
 
     @Override
     public void setEstado(String string) {
         textStatus.setText(string);
-
     }
 
     @Override

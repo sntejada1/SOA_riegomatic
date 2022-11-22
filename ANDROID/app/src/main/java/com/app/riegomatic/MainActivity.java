@@ -18,23 +18,19 @@ public class MainActivity extends AppCompatActivity {
 
     public ConexionBlutooth mConexionBluetooth; // solo se va a utilizar para saber el estado del bt(encendido/apago) y prenderlo en caso que sea necesario.
     private final int estaConectado = 1;
+    private final int on = 1;
+    private final int off = 0;
 
     @RequiresApi(api = Build.VERSION_CODES.S)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main); //muestro la view..
-
         mConexionBluetooth = new ConexionBlutooth();
 
         Button login = findViewById(R.id.login);
-
         login.setOnClickListener(btnListener);
-
-
     }
-
-
 
     private View.OnClickListener btnListener = new View.OnClickListener() {
         @RequiresApi(api = Build.VERSION_CODES.S)
@@ -59,7 +55,6 @@ public class MainActivity extends AppCompatActivity {
             intent = new Intent(MainActivity.this, HomeActivity.class);
             //se inicia la activity principal
             startActivity(intent);
-
             finish();
         }
     }
@@ -67,9 +62,9 @@ public class MainActivity extends AppCompatActivity {
     @RequiresApi(api = Build.VERSION_CODES.S)
     private int checkStatusBt(){
         if ( mConexionBluetooth.checkBtState(this) != estaConectado) {
-            mConexionBluetooth.encernderBluetooth(this);
-            return 0;
+            mConexionBluetooth.encenderBluetooth(this);
+            return off;
         }
-        return 1 ;
+        return on;
     }
 }

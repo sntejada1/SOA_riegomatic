@@ -7,7 +7,6 @@ import java.io.IOException;
 
 public interface Contract {
     interface ViewMVP{
-
         void setHumedad(String string);
         void setWater(String string);
         void setEstado(String string);
@@ -18,8 +17,6 @@ public interface Contract {
     interface ModelMVP{
 
         interface OnSendToPresenter{
-
-
         }
         void conectarBluetooth(Context Contexto, Handler bluetoothIn);
         void escribirArduino(String senal);
