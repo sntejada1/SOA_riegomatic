@@ -158,7 +158,7 @@ public class ConexionBlutooth extends Thread {
             mmOutStream.write(msgBuffer);                //write bytes over BT connection via outstream
         } catch (IOException e) {
             //if you cannot write, close the application
-            //Toast.makeText(getBaseContext(), "La Conexión fallo", Toast.LENGTH_LONG).show();
+            //Toast.makeTexst(getBaseContext(), "La Conexión fallo", Toat.LENGTH_LONG).show();
             // finish();
 
         }

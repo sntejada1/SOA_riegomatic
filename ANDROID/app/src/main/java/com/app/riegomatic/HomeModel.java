@@ -54,6 +54,7 @@ public class HomeModel implements Contract.ModelMVP {
 
     @Override
     public void escribirArduino(String senal) {
+        mConexionBluetooth.write(senal);
 
     }
 
