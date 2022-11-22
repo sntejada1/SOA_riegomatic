@@ -40,9 +40,13 @@ public class ConexionBlutooth extends Thread {
     private OutputStream mmOutStream;
     private Handler bluetoothIn;
     private Context contexto2;
-    private final String address = "98:D3:61:F9:39:A5";
+    private final String MAC_address = "98:D3:61:F9:39:A5";
+    private final int tamMsj = 10;
+    private final int arg2 = -1;
+    private final int handlerState = 0;
+    private final int estaConectado = 1;
 
-    // el ejemplo que mando profe (no funciono)
+    // el ejemplo que mando profe
     String[] permissions = new String[]{
             Manifest.permission.BLUETOOTH,
             Manifest.permission.BLUETOOTH_ADMIN,
@@ -73,18 +77,24 @@ public class ConexionBlutooth extends Thread {
     }
 
 
-    public int crear(Context contexto) {
-        return checkBTState(contexto);
+    public int checkBtState(Context contexto) {
+        if (btAdapter == null) {
+            Toast.makeText(contexto, "El dispositivo no soporta bluetooth", Toast.LENGTH_LONG).show();
+            return 0;
+        } else {
+            if (btAdapter.isEnabled()) {
+                return 1;
+            }
+            return 0;
+        }
 
     }
 
     public BluetoothSocket createBluetoothSocket(BluetoothDevice device, Context contexto) throws IOException {
 
-
-        // lo que estaba en el on resumen
-        if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            //solicitar permiso bluetooth_connect
-            //checkPermissions(contexto);
+        if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
+            //solicitar permiso
+            checkPermissions(contexto);
 
         }
         //creates secure outgoing connecetion with BT device using UUID
@@ -93,21 +103,21 @@ public class ConexionBlutooth extends Thread {
     }
 
 
-    public int conectarBluetooth(Context cotexto) {
+    public int conectarBluetooth(Context contexto) {
 
 
-        BluetoothDevice device = btAdapter.getRemoteDevice(address);
+        BluetoothDevice device = btAdapter.getRemoteDevice(MAC_address);
 
         try {
-            btSocket = createBluetoothSocket(device, cotexto);
+            btSocket = createBluetoothSocket(device, contexto);
         } catch (IOException e) {
-            Toast.makeText(cotexto, "La creacción del Socket fallo", Toast.LENGTH_LONG).show();
+            Toast.makeText(contexto, "La creacción del Socket fallo", Toast.LENGTH_LONG).show();
         }
         // Establish the Bluetooth socket connection.
         try {
-            if (ActivityCompat.checkSelfPermission(cotexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
                 // lo que tengo que hacer si no tengo permisos
-                //checkPermissions(contexto);
+                checkPermissions(contexto);
             }
             btSocket.connect();
         } catch (IOException e) {
@@ -123,20 +133,6 @@ public class ConexionBlutooth extends Thread {
         return 1;
     }
 
-
-    public int checkBTState(Context contexto) {
-
-
-        if (btAdapter == null) {
-            Toast.makeText(contexto, "El dispositivo no soporta bluetooth", Toast.LENGTH_LONG).show();
-            return 0;
-        } else {
-            if (btAdapter.isEnabled()) {
-                return 1;
-            }
-            return 0;
-        }
-    }
 
     public void ConnectedThread(BluetoothSocket socket) {
         InputStream tmpIn = null;
@@ -158,7 +154,7 @@ public class ConexionBlutooth extends Thread {
             mmOutStream.write(msgBuffer);                //write bytes over BT connection via outstream
         } catch (IOException e) {
             //if you cannot write, close the application
-            //Toast.makeText(getBaseContext(), "La Conexión fallo", Toast.LENGTH_LONG).show();
+            //Toast.makeTexst(getBaseContext(), "La Conexión fallo", Toat.LENGTH_LONG).show();
             // finish();
 
         }
@@ -166,38 +162,47 @@ public class ConexionBlutooth extends Thread {
 
 
     public void run() {
-        Log.d(TAG, "...RUUUUUNS.............................................................");
-        if (this.conectarBluetooth(this.contexto2) == 1 ) {
-            Log.d(TAG, "...RUNNNNN DENTRO IF.............................................................");
+
+        //Log.d(TAG, "...RUUUUUNS............................................................." + this.getId());
+        if (this.conectarBluetooth(this.contexto2) == estaConectado ) {
+            //Log.d(TAG, "...RUNNNNN DENTRO IF.............................................................");
             this.write("x");
             byte[] buffer = new byte[256];
             int bytes;
             int i = 0;
-            // Keep looping to listen for received messages
+            String mensaje2 = "-2"; // para mostrar los botones si se conecto
+            bluetoothIn.obtainMessage(handlerState, tamMsj, arg2, mensaje2).sendToTarget();
+
             while (true) {
                 try {
                     Log.d(TAG, "...EJECUTANDO WHILEEEEEEEE............................................................." + i);
                     i++;
-                    bytes = mmInStream.read(buffer);         //read bytes from input buffer
+                    bytes = mmInStream.read(buffer);
                     String readMessage2 = new String(buffer, 0, bytes);
-                    // Send the obtained bytes to the UI Activity via handler
-                    bluetoothIn.obtainMessage(0, bytes, -1, readMessage2).sendToTarget();
+                    bluetoothIn.obtainMessage(handlerState, bytes, arg2, readMessage2).sendToTarget();
                 } catch (IOException e) {
+                    Log.d(TAG, "...SE PERDIO LA CONEXION............................................................." + this.getId());
                     String mensaje = "-1";
-                    byte[] bytess = mensaje.getBytes();
-                    //bytes = ByteBuffer.wrap(mensaje.getBytes()).getInt();
-                    bluetoothIn.obtainMessage(0, 2000, -1, mensaje).sendToTarget();
+                    bluetoothIn.obtainMessage(handlerState, tamMsj, arg2, mensaje).sendToTarget();
                     Log.e(TAG, "...SE PERDIO LA CONEXION .............................................................");
+                    try {
+                        this.desconectarBluetooth();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
                     break;
                 }
             }
         }else {
-            int bytes;
             String mensaje = "-1";
-            byte[] bytess = mensaje.getBytes();
-            //bytes = ByteBuffer.wrap(mensaje.getBytes()).getInt();
-            bluetoothIn.obtainMessage(0, 2000, -1, mensaje).sendToTarget();
-            Log.e(TAG, "...NO SE PUDO REALIZAR LA CONEXION .............................................................");
+            bluetoothIn.obtainMessage(handlerState, tamMsj, arg2, mensaje).sendToTarget();
+            try {
+                this.desconectarBluetooth();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            //Log.d(TAG, "...NO SE PUDO REALIZAR LA CONEXION............................................................." + this.getId());
+            //Log.e(TAG, "...NO SE PUDO REALIZAR LA CONEXION .............................................................");
 
         }
     }
@@ -228,8 +233,9 @@ public class ConexionBlutooth extends Thread {
 
     public void encernderBluetooth(Context contexto){
         Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-        if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(contexto, Manifest.permission.BLUETOOTH_ADMIN) != PackageManager.PERMISSION_GRANTED) {
             //solicitar permisos
+            checkPermissions(contexto);
         }
         contexto.startActivity(enableBtIntent);
     }

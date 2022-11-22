@@ -29,10 +29,11 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
         @SuppressLint("HandlerLeak") Handler bt = new Handler() {
             public void handleMessage(android.os.Message msg) {
                 if (msg.what == handlerState) {          //if message is what we want
+                    actualizarEstado("CONECTADO");
                     readMessage = (String) msg.obj;
-                    Log.d(TAG, "...ESTADOOOOOOOOOOOOOOOOOOOOOO............................................................." + msg.toString());
+                    //Log.d(TAG, "...ESTADOOOOOOOOOOOOOOOOOOOOOO............................................................." + msg.toString());
                     int endOfLineIndex = readMessage.indexOf("a");
-                    if (endOfLineIndex > 0 && readMessage.indexOf("k") != 0 ) {
+                    if (endOfLineIndex > 0 ) {
 
                         if (readMessage.charAt(0) != '#')
                         {
@@ -41,12 +42,16 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
                             actualizarHumedad(humedad);
                             actualizarDistancia(distancia);
                         }
-                    } else if(readMessage.length() > 2){
-                        // presenter.actualizarEstado(readMessage.substring(1));
                     } else if(readMessage.equals("-1")){ // menos uno llego el mensaje de desconctado
+                        //desconectar hilo
+                        Log.e(TAG, "...DESCONECTO IDOLO PRESENTADOR.............................................................");
+                        desconectarHilo();
                         actualizarEstado("DESCONECTADO");
                         actualizarHumedad("-");
                         actualizarDistancia("-");
+                        mostrarBtnConectar();
+                    } else if(readMessage.equals("-2")){
+                        ocultarBtnConectar();
                     }
                 }
             }
@@ -55,16 +60,6 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
         return bt;
     }
 
-    @Override
-    public void onFinished(String string) {
-        this.homeView.setString(string);
-    }
-
-
-
-    public void actualizarCampos(String string) {
-        this.homeView.setString(string);
-    }
 
     public void actualizarHumedad(String string) {
         this.homeView.setHumedad(string);
@@ -74,22 +69,44 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
         this.homeView.setEstado(string);
     }
 
-
     public void actualizarDistancia(String string) {
-        string = string.replaceAll("\\s+","");
-        try {
-            int distancia = Integer.parseInt(string.toString());
-            // this.homeView.setWater(string.toString());
-            if(distancia < 20) {
-                this.homeView.setWater("CORRECTA");
-            } else {
-                this.homeView.setWater("BAJA");
+        if(string == "-"){
+            this.homeView.setWater(string);
+        }else{
+            string = string.replaceAll("\\s+", "");
+            try {
+                int distancia = Integer.parseInt(string);
+                if (distancia < 20) {
+                    this.homeView.setWater("CORRECTA");
+                } else {
+                    this.homeView.setWater("BAJA");
+                }
+            } catch (NumberFormatException e) {
+                Log.e(TAG, e.getMessage());
+                return;
             }
-        } catch (NumberFormatException e) {
-            return;
         }
-
     }
+
+    public void mostrarBtnConectar(){
+        this.homeView.mostrarBtnConectar();
+    }
+
+    public void ocultarBtnConectar(){
+        this.homeView.ocultarBtnConectar();
+    }
+
+    public  void desconectarHilo(){
+        try {
+            if( this.model.statusHilo() ) {
+                this.model.desconectarBluetooth();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
 
 
 
@@ -102,31 +119,26 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
 
     @Override
     public int checkBtStateHome(){
-        if(this.model.checkBTStatehome(contexto) == 1) {
-            //this.homeView.setFlag(1);
-            Log.d(TAG, "...111111111111111111111111111111111............................................................." );
+        if(this.model.checkBTStateHome(contexto) == 1) {
+            //Log.d(TAG, "...111111111111111111111111111111111............................................................." );
             return 1;
         } else {
-            //this.homeView.setFlag(0);
-
-            Log.d(TAG, "...000000000000000000000000000000............................................................." );
+            //Log.d(TAG, "...000000000000000000000000000000............................................................." );
             return 0;
         }
         //return 1;
     };
 
-    public void encenderBluetooth(){
-        this.model.encenderBluetooth(contexto);
-    }
 
-    public void pause() throws IOException {
-        this.model.pause();
+    public void desconectarBluetooth() throws IOException {
+        Log.e(TAG, "...DESDE PAUSEEEEE.............................................................");
+        this.model.desconectarBluetooth();
     }
 
 
     @Override
-    public void res(){
-        this.model.res(contexto,bluetoohIn);
+    public void conectarBluetooth(){
+        this.model.conectarBluetooth(contexto,bluetoohIn);
     };
 
 
