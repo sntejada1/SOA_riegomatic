@@ -52,8 +52,8 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
                         actualizarHumedad("-");
                         actualizarDistancia("-");
                         mostrarBtnConectar();
-
-
+                    } else if(readMessage.equals("-2")){
+                        ocultarBtnConectar();
                     }
                 }
             }
@@ -104,6 +104,10 @@ public class Presenter implements Contract.ModelMVP.OnSendToPresenter, Contract.
 
     public void mostrarBtnConectar(){
         this.homeView.mostrarBtnConectar();
+    }
+
+    public void ocultarBtnConectar(){
+        this.homeView.ocultarBtnConectar();
     }
 
     public  void desconectarHilo(){

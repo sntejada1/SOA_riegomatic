@@ -13,6 +13,8 @@ public interface Contract {
         void setEstado(String string);
         void setFlag(int valor);
         void mostrarBtnConectar();
+
+        void ocultarBtnConectar();
     }
 
     interface ModelMVP{

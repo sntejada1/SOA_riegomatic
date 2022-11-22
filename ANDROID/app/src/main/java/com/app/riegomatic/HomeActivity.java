@@ -272,6 +272,13 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
         btn_onOf.setVisibility(View.GONE);
     }
 
+    @Override
+    public void ocultarBtnConectar(){
+        btn_conectar.setVisibility(View.GONE);
+        btn_watering.setVisibility(View.VISIBLE);
+        btn_onOf.setVisibility(View.VISIBLE);
+    }
+
     private View.OnClickListener btnListener = new View.OnClickListener() {
         @SuppressLint("NonConstantResourceId")
         @Override
@@ -287,6 +294,7 @@ public class HomeActivity extends AppCompatActivity implements Contract.ViewMVP 
                 case R.id.conectar:
                     //presenter.encenderBluetooth();
                     //mostrar los botones
+                    setEstado("CONECTANDO");
                     presenter.res();
                     break;
                 case R.id.back:

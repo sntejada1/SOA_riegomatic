@@ -174,6 +174,10 @@ public class ConexionBlutooth extends Thread {
             byte[] buffer = new byte[256];
             int bytes;
             int i = 0;
+            String mensaje2 = "-2"; // para mostrar los botones si se conecto
+            //byte[] bytess = mensaje2.getBytes();
+            //bytes = ByteBuffer.wrap(mensaje.getBytes()).getInt();
+            bluetoothIn.obtainMessage(0, 2000, -1, mensaje2).sendToTarget();
             // Keep looping to listen for received messages
             while (true) {
                 try {
@@ -186,7 +190,7 @@ public class ConexionBlutooth extends Thread {
                 } catch (IOException e) {
                     Log.d(TAG, "...SE PERDIO LA CONEXION............................................................." + this.getId());
                     String mensaje = "-1";
-                    byte[] bytess = mensaje.getBytes();
+                    //byte[] bytess = mensaje.getBytes();
                     //bytes = ByteBuffer.wrap(mensaje.getBytes()).getInt();
                     bluetoothIn.obtainMessage(0, 2000, -1, mensaje).sendToTarget();
                     Log.e(TAG, "...SE PERDIO LA CONEXION .............................................................");
